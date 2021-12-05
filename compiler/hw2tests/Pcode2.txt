@@ -1,0 +1,27 @@
+ldc 5
+ldc 10
+sto
+ldc 6
+ldc 5
+sto
+ldc 0
+fjp ifelse_else0
+ldc 5
+ldc 5
+ind
+ldc 6
+add
+sto
+ujp ifelse_end0
+ifelse_else0:
+ldc 6
+ind
+ldc 10
+ldc 5
+ind
+mul
+sto
+ifelse_end0:
+ldc 5
+ind
+print

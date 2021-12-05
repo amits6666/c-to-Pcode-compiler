@@ -1,0 +1,64 @@
+ldc 5
+ldc 10.00
+sto
+ldc 6
+ldc 5.00		/* ldc 5.00000 is also okay */
+sto
+ldc 7
+ldc 3.00
+sto
+while_loop0:	/* "whi:"  is not good! label must be at least 4 letters*/
+ldc 5
+ind
+ldc 0
+geq
+fjp while_end0
+ldc 7
+ldc 7
+ind
+ldc 2.00
+add
+sto
+ldc 7
+ind
+ldc 5
+ind
+grt
+fjp ifelse_else0
+while_loop1:
+ldc 6
+ind
+ldc 10.00
+leq
+fjp while_end1
+ldc 6
+ldc 6
+ind
+ldc 1.00
+add
+sto
+ldc 6
+ind
+print
+ujp while_loop1
+while_end1:
+ujp ifelse_end0
+ifelse_else0:
+ldc 7
+ldc 7
+ind
+ldc 1.00
+sub
+sto
+ifelse_end0:
+ldc 5
+ldc 5
+ind
+ldc 1.00
+sub
+sto
+ldc 5
+ind
+print
+ujp while_loop0
+while_end0:

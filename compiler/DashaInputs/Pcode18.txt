@@ -1,0 +1,21 @@
+ldc 5
+ldc 1
+sto
+for_loop0:
+ldc 5
+ind
+ldc 10
+les
+fjp for_end0
+ldc 5
+ind
+print
+ldc 5
+ind
+ldc 5
+ldc 5
+ind
+inc
+sto
+ujp for_loop0
+for_end0:

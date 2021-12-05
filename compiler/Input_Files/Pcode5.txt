@@ -1,0 +1,15 @@
+ldc 5
+ldc 5.00    /* ldc 5.0000 is also okay */
+sto
+ldc 7
+ldc 5
+ind
+ldc 6.00   /* ldc 6.0000 is also okay */
+les
+sto
+ldc 7
+ind
+fjp if_end0
+ldc 6
+print
+if_end0:

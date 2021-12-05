@@ -1,0 +1,116 @@
+ldc 5
+ldc 5
+sto
+while_loop0:
+ldc 5
+ind
+ldc 0
+grt
+fjp while_end0
+ldc 6
+ldc 1
+sto
+while_loop1:
+ldc 6
+ind
+ldc 5
+ind
+les
+fjp while_end1
+ldc 6
+ind
+ldc 6
+ldc 6
+ind
+inc 1
+sto
+print
+ujp while_loop1
+while_end1:
+ldc 5
+ldc 5
+ind
+ldc 1
+sub
+sto
+ujp while_loop0
+while_end0:
+ldc 0
+fjp if_end0
+ldc 15
+print
+if_end0:
+ldc 1
+fjp ifelse_else0
+ldc 42
+print
+ujp ifelse_end0
+ifelse_else0:
+ldc 16
+print
+ifelse_end0:
+ldc 55
+switch0_case0:
+dpl
+ldc 1
+equ
+fjp switch0_case1
+ldc 0
+print
+ujp switch_end0
+switch0_case1:
+dpl
+ldc 55
+equ
+fjp switch0_case2
+ujp switch_end0
+switch0_case2:
+dpl
+ldc 8
+neg
+equ
+fjp switch0_case3
+ldc 1
+print
+ldc 2
+print
+ujp switch_end0
+switch0_case3:
+switch_end0:
+ldc 5
+ldc 5
+ldc 6
+mul
+ldc 0
+add
+sto
+ldc 5
+ldc 5
+ind
+ldc 1
+neg
+mul
+sto
+ldc 5
+ind
+print
+ldc 7
+ldc 1
+sto
+ldc 7
+ldc 7
+ind
+not
+sto
+ldc 7
+ldc 7
+ind
+ldc 5
+ind
+ldc 0
+les
+or
+sto
+ldc 7
+ind
+print

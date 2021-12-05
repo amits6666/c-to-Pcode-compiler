@@ -1,0 +1,40 @@
+ldc 6
+inc 0
+ldc 6
+sto
+ldc 9
+ldc 6
+inc 0
+ind
+sto
+ldc 9
+ind
+inc 1
+ldc 6
+sto
+ldc 9
+ind
+inc 1
+ind
+inc 2
+ldc 5
+sto
+ldc 5
+ldc 0
+ixa 1
+dec 0
+ldc 2.50
+sto
+ldc 9
+ind
+inc 1
+ind
+inc 2
+ind
+ldc 0
+ixa 1
+dec 0
+ind
+ldc 2.00
+mul
+print

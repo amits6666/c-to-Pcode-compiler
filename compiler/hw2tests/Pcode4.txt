@@ -1,0 +1,48 @@
+ldc 5
+ldc 18
+sto
+ldc 6
+ldc 958
+sto
+ldc 5
+ind
+switch0_case0:
+dpl
+ldc 18
+equ
+fjp switch0_case1
+ldc 0
+print
+ujp switch_end0
+switch0_case1:
+dpl
+ldc 2
+equ
+fjp switch0_case2
+ldc 1
+print
+ujp switch_end0
+switch0_case2:
+dpl
+ldc 30
+equ
+fjp switch0_case3
+ldc 2
+print
+ldc 3
+print
+ujp switch_end0
+switch0_case3:
+switch_end0:
+ldc 6
+ind
+switch1_case0:
+dpl
+ldc 958
+equ
+fjp switch1_case1
+ldc 4
+print
+ujp switch_end1
+switch1_case1:
+switch_end1:

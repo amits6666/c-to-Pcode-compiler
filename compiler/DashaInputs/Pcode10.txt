@@ -1,0 +1,6 @@
+ldc 5
+ldc 5.50
+sto
+ldc 5
+ind
+print

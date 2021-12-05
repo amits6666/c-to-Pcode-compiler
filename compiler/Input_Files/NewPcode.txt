@@ -1,0 +1,147 @@
+ldc 5
+ldc 5
+sto
+ldc 6
+ldc 10
+sto
+ldc 7
+ldc 8.82		/* ldc 8.820000 is also okay */
+sto
+ldc 8
+ldc 10.00
+sto
+ldc 9
+ldc 5.12
+sto
+ldc 10
+ldc 18.00
+sto
+ldc 5
+print
+ldc 10.50
+print
+ldc 10.00
+print
+ldc 7
+ldc 6
+ind
+ldc 10
+equ
+fjp cond_else0
+ldc 2.50
+ujp condLabel_end0
+cond_else0:		/* "con:"  is not good! label must be at least 4 letters*/
+ldc 1.00
+condLabel_end0:
+ldc 9
+ind
+ldc 10
+ind
+equ
+fjp cond_else1
+ldc 0.00
+ujp condLabel_end1
+cond_else1:
+ldc 3.20
+neg
+condLabel_end1:
+add
+sto
+ldc 7
+ldc 6
+ind
+ldc 10
+equ
+fjp cond_else2
+ldc 2.50
+ujp condLabel_end2
+cond_else2:
+ldc 1.00
+condLabel_end2:
+ldc 9
+ind
+ldc 10
+ind
+equ
+fjp cond_else3
+ldc 0.00
+ujp condLabel_end3
+cond_else3:
+ldc 2.50
+neg
+condLabel_end3:
+add
+sto
+ldc 7
+ind
+print
+ldc 8
+ind
+print
+ldc 5
+ind
+ldc 5
+ldc 5
+ind
+inc 1
+sto
+print
+ldc 6
+ldc 6
+ind
+inc 1
+sto
+ldc 6
+ind
+print
+while_loop0:
+ldc 5
+ind
+ldc 15
+les
+fjp while_end0
+ldc 5
+ldc 5
+ind
+ldc 6
+ind
+ldc 11
+equ
+fjp cond_else4
+ldc 2
+ujp condLabel_end4
+cond_else4:
+ldc 1
+condLabel_end4:
+add
+sto
+ldc 5
+ind
+print
+ujp while_loop0
+while_end0:
+ldc 5
+ldc 0
+sto
+for_loop0:
+ldc 5
+ind
+ldc 6
+ind
+leq
+fjp for_end0
+ldc 5
+ind
+print
+ldc 6
+ind
+print
+ldc 5
+ind
+ldc 5
+ldc 5
+ind
+inc 1
+sto
+ujp for_loop0
+for_end0:

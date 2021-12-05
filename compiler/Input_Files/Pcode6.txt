@@ -1,0 +1,55 @@
+ldc 5
+ldc 5.50   	/* ldc 5.50000 is also okay */
+sto
+ldc 5.18		/* ldc 5.18000 is also okay */
+not
+print
+ldc 5
+ind
+ldc 6.00
+les
+ldc 5
+ind
+ldc 7.00
+grt
+or
+ldc 5
+ind
+ldc 6.00
+equ
+and
+ldc 0
+or
+print
+ldc 5
+ind
+ldc 6.00
+leq
+ldc 5
+ind
+ldc 7.00
+geq
+or
+ldc 5
+ind
+ldc 6.00
+neq
+and
+ldc 8.80
+or
+print
+ldc 5
+ind
+neg
+print
+ldc 5
+ind
+ldc 6.50
+add
+ldc 6.50
+sub
+ldc 6.50
+mul
+ldc 6.50
+div
+print

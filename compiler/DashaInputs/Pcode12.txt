@@ -1,0 +1,9 @@
+ldc 5
+ldc 2
+sto
+ldc 5
+ldc 5
+ind
+ldc 7
+sub
+sto

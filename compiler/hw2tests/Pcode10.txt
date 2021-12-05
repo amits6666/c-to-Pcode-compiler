@@ -1,0 +1,72 @@
+ldc 11
+ldc 0
+sto
+while_loop0:
+ldc 11
+ind
+ldc 2
+les
+fjp while_end0
+ldc 12
+ldc 0
+sto
+while_loop1:
+ldc 12
+ind
+ldc 2
+les
+fjp while_end1
+ldc 7
+ldc 11
+ind
+ixa 2
+ldc 12
+ind
+ixa 1
+dec 0
+ldc 11
+ind
+ldc 1
+add
+ldc 50
+mul
+ldc 12
+ind
+ldc 1
+add
+ldc 20
+mul
+add
+sto
+ldc 12
+ldc 12
+ind
+ldc 1
+add
+sto
+ujp while_loop1
+while_end1:
+ldc 11
+ldc 11
+ind
+ldc 1
+add
+sto
+ujp while_loop0
+while_end0:
+ldc 7
+ldc 0
+ixa 2
+ldc 0
+ixa 1
+dec 0
+ind
+ldc 7
+ldc 1
+ixa 2
+ldc 1
+ixa 1
+dec 0
+ind
+add
+print

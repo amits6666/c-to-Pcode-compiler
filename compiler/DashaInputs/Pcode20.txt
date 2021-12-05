@@ -1,0 +1,17 @@
+ldc 5
+ldc 5
+sto
+ldc 5
+ind
+ldc 5
+ldc 5
+ind
+dec
+sto
+ldc 5
+ldc 5
+ind
+dec
+sto
+ldc 5
+ind
