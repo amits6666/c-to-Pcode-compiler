@@ -727,8 +727,8 @@ TreeNode *obj_tree(treenode *root) {
 						obj_tree(root->rnode);
 					} else if (root->hdr.tok == BREAK) {
 						/* break jump - for HW2! */
-						obj_tree(root->lnode);
-						obj_tree(root->rnode);
+						Break *breakObj = new Break();
+						return Break;
 					} else if (root->hdr.tok == GOTO) {
 						/* GOTO jump - for HW2! */
 						obj_tree(root->lnode);
