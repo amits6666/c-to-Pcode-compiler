@@ -14,6 +14,8 @@ int label_while = 0;
 int label_cond = 0;
 int label_doWhile = 0;
 string breakJump = "";
+int label_switch = 0;
+int label_case = 0;
 
 
 
@@ -234,7 +236,7 @@ public:
 	virtual void gencode(string c_type) {
 		cout << "ujp " << breakJump << endl;
 	}
-}
+};
 
 class For : public TreeNode { //son1 - statement, son2 - increment
 public:
@@ -297,6 +299,34 @@ public:
 		if(son2) son2->gencode("coder");
 		cout << "fjp doWhile_end" << label << endl << "ujp doWhile_loop" << label  << endl << "doWhile_end" << label << ":" << endl;
 		breakJump = prevBreakJump;
+	}
+};
+
+class Switch : public TreeNode {
+public:
+
+	virtual void gencode(string c_type = "coder"){
+		label_case = 0;
+		string prevBreakJump = breakJump;
+		breakJump = "switch_end" + to_string(label_switch);
+		son1->gencode("coder");
+		son2->gencode();
+		cout << "switch" << label_switch << "_case" << label_case << ":" << endl;
+		cout << "switch_end" << label_switch++ << ":" << endl;
+		breakJump = prevBreakJump;
+	}
+};
+
+class Case : public TreeNode {
+public:
+
+	virtual void gencode(string c_type = "coder"){
+		cout << "switch" << label_switch << "_case" << label_case++ << ":" << endl;
+		cout << "dpl" << endl;
+		son1->gencode("coder");
+		cout << "equ" << endl;
+		cout << "fjp " << "switch" << label_switch << "_case" << label_case << endl;
+		son2->gencode();
 	}
 };
 
@@ -728,7 +758,7 @@ TreeNode *obj_tree(treenode *root) {
 					} else if (root->hdr.tok == BREAK) {
 						/* break jump - for HW2! */
 						Break *breakObj = new Break();
-						return Break;
+						return breakObj;
 					} else if (root->hdr.tok == GOTO) {
 						/* GOTO jump - for HW2! */
 						obj_tree(root->lnode);
@@ -737,11 +767,13 @@ TreeNode *obj_tree(treenode *root) {
 					break;
 
 				case TN_SWITCH:
+				{
 					/* Switch case - for HW2! */
-					obj_tree(root->lnode);
-					obj_tree(root->rnode);
-					break;
-
+					Switch* switchObj = new Switch();
+					switchObj->son1 = obj_tree(root->lnode);
+					switchObj->son2 = obj_tree(root->rnode);
+					return switchObj;
+				}
 				case TN_INDEX:
 					/* call for array - for HW2! */
 					obj_tree(root->lnode);
@@ -965,9 +997,15 @@ TreeNode *obj_tree(treenode *root) {
 				}
 
 				case TN_LABEL:
-					obj_tree(root->lnode);
-					obj_tree(root->rnode);
+				{
+					if(root->lnode->hdr.tok == CASE){
+						Case* caseObj  = new Case();
+						caseObj->son1 = obj_tree(root->lnode->rnode);
+						caseObj->son2 = obj_tree(root->rnode);
+						return caseObj;
+					}
 					break;
+				}
 
 				default:
 					obj_tree(root->lnode);
