@@ -471,12 +471,16 @@ public:
 		for(int i = 1; i < arr.dimCount; i++){
 			dimMul *= arr.dimSizes[i];
 		}
-		//cout << "4" << endl;
+		//cout << "arr dim count " << arr.dimCount << endl;
 		for(int i = 0; i < arr.dimCount; i++){
 			indicesNodes[i]->gencode("coder");
 			cout << "ixa " << dimMul << endl;
 			if(i+1 != arr.dimCount)
 				dimMul /= arr.dimSizes[i+1];
+		}
+		if(arr.dimCount == 0) {
+			indicesNodes[0]->gencode("coder");
+			cout << "ixa " << dimMul << endl;
 		}
 		//cout << "5" << endl;
 		if(c_type == "coder")
