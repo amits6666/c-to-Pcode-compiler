@@ -678,16 +678,19 @@ TreeNode *obj_tree(treenode *root) {
 
 				case TN_DECL: {
 					Declaration *declaration = new Declaration();
-					if(((leafnode*)root->rnode)->hdr.tok == TN_IDENT)
+					if (root->rnode == NULL)
+						break;
+					else if(root->rnode->hdr.type == TN_IDENT)
 						declaration->son1 = obj_tree(root->rnode);
 					else {
 						declaration->son1 = obj_tree(root->rnode->rnode);
 						treenode* p = root->rnode->lnode;
-						while(p->hdr.tok == TN_PNTR) {
+						while(p != NULL && p->hdr.type == TN_PNTR) {
 							declaration->pointerDepth++;
 							p = p->rnode;
 						}
 					}
+					
 					declaration->typeNode = root->lnode->lnode;
 					return declaration;
 				}
@@ -808,11 +811,11 @@ TreeNode *obj_tree(treenode *root) {
 					/* pointer derefrence - for HW2! */
 					Dereference* dereference = new Dereference();
 					treenode* p = root;
-					while(p->hdr.tok == TN_DEREF) {
+					while(p->hdr.type == TN_DEREF) {
 						dereference->dereferenceDepth++;
 						p = p->rnode;
 					}
-					dereference->son1 = obj_tree(root->rnode);
+					dereference->son1 = obj_tree(p);
 					return dereference;
 				}
 				case TN_SELECT:
