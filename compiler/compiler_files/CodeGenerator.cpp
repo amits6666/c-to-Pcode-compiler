@@ -20,24 +20,27 @@ int label_case = 0;
 
 
 class Variable {
-
+public:
 	/* Think! what does a Variable contain? */
 	string identifier, type;
-	int address, size, pointerDepth;
+	int address, size, pointerDepth, dimCount, typeSize;
 	Variable *next;
+	int* dimSizes;
 
-public:
 	Variable() {
 		next = NULL;
 	}
 
-	Variable(string key, string type, int address, int size, int pointerDepth = 0) {
+	Variable(string key, string type, int address, int size, int pointerDepth = 0, int dimCount = 0, int* dimSizes = NULL, int typeSize = 1) {
 		this->identifier = key;
 		this->size = size;
 		this->type = type;
 		this->address = address;
 		this->pointerDepth = pointerDepth;
 		next = NULL;
+		this->dimCount = dimCount;
+		this->dimSizes = dimSizes;
+		this->typeSize = typeSize;
 	}
 
 	friend class SymbolTable;
@@ -73,10 +76,29 @@ public:
 		return -1; // not found
 	}
 
-	// Function to insert an identifier
-	bool insert(string id, string type, int address, int size, int pointerDepth = 0) {
+	Variable* GetVariable(string id){
 		int index = hashf(id);
-		Variable *p = new Variable(id, type, address, size, pointerDepth);
+		Variable *start = head[index];
+
+		if (start == NULL)
+			return NULL;
+
+		while (start != NULL) {
+
+			if (start->identifier == id) {
+				return start;
+			}
+
+			start = start->next;
+		}
+
+		return NULL; // not found
+	}
+
+	// Function to insert an identifier
+	bool insert(string id, string type, int address, int size, int pointerDepth = 0, int dimCount = 0, int* dimSizes = NULL, int typeSize = 1) {
+		int index = hashf(id);
+		Variable *p = new Variable(id, type, address, size, pointerDepth, dimCount, dimSizes, typeSize);
 
 		if (head[index] == NULL) {
 			head[index] = p;
@@ -353,27 +375,43 @@ public:
 class Declaration : public TreeNode {
 public:
 	treenode* typeNode;
-	int pointerDepth = 0;
+	int pointerDepth = 0, dimCount = 0;
+	int* dimSizes = NULL;
 
 	virtual void gencode(string c_type) {
+		int size, typeSize = 1;
 		string typeString;
 		switch (typeNode->hdr.tok)
 		{
 			case INT: {
 				typeString = "int";
+				typeSize = 1;
 				break;
 			}
 			case FLOAT: {
 				typeString = "float";
+				typeSize = 1;
 				break;
 			}
 			case DOUBLE: {
 				typeString = "double";
+				typeSize = 1;
 				break;
 			}
 		}
+
+		size = typeSize;
+		for(int i = 0; i < dimCount; i++){
+			size *= dimSizes[i];
+		}
+
+		if(pointerDepth != 0)
+			size = 1;
+
+
 		cout << "creating var " << static_cast<Id*>(son1)->id_name << " with address " << Stack_Address << endl;
-		ST.insert(static_cast<Id*>(son1)->id_name, typeString, Stack_Address++, 1, pointerDepth); // you need to add the type and size according to declaration of identifier in AST
+		ST.insert(static_cast<Id*>(son1)->id_name, typeString, Stack_Address, size, pointerDepth, dimCount, dimSizes, typeSize); // you need to add the type and size according to declaration of identifier in AST
+		Stack_Address += size;
 	}
 };
 
@@ -400,7 +438,6 @@ public:
 };
 
 class Dereference : public TreeNode {
-	
 public:
 	int dereferenceDepth = 0;
 
@@ -410,7 +447,44 @@ public:
 			cout << "ind" << endl;
 		}
 	}
+
+	string GetIdentifier(){
+		return static_cast<Id*>(son1)->id_name;
+	}
 };
+
+class ArrayAccess : public TreeNode {
+public:
+	int dimCount = 0;
+	TreeNode** indicesNodes;
+	TreeNode* id;
+	string ident = "";
+	virtual void gencode(string c_type){
+		id->gencode("codel");
+
+		//cout << "1" << endl;
+		Variable arr = *ST.GetVariable(ident);
+		//cout << "2" << endl;
+		int accessShift = 0;
+		int dimMul = arr.typeSize;
+		//cout << "3" << endl;
+		for(int i = 1; i < arr.dimCount; i++){
+			dimMul *= arr.dimSizes[i];
+		}
+		//cout << "4" << endl;
+		for(int i = 0; i < arr.dimCount; i++){
+			indicesNodes[i]->gencode("coder");
+			cout << "ixa " << dimMul << endl;
+			if(i+1 != arr.dimCount)
+				dimMul /= arr.dimSizes[i+1];
+		}
+		//cout << "5" << endl;
+		if(c_type == "coder")
+			cout << "ind" << endl;
+	}
+};
+
+
 
 TreeNode *obj_tree(treenode *root);
 
@@ -682,7 +756,22 @@ TreeNode *obj_tree(treenode *root) {
 						break;
 					else if(root->rnode->hdr.type == TN_IDENT)
 						declaration->son1 = obj_tree(root->rnode);
-					else {
+					else if(root->rnode->hdr.type == TN_ARRAY_DECL) {
+						treenode* p = root->rnode;
+						while(p != NULL && p->hdr.type == TN_ARRAY_DECL) {
+							declaration->dimCount++;
+							p = p->lnode;
+						}
+						declaration->son1 = obj_tree(p);
+						int dimCount = declaration->dimCount;
+						declaration->dimSizes = new int[declaration->dimCount];
+						p = root->rnode;
+						while(p != NULL && p->hdr.type == TN_ARRAY_DECL) {
+							declaration->dimSizes[--dimCount] = ((leafnode*)p->rnode)->data.ival;
+							p = p->lnode;
+						}
+					}
+					else if(root->rnode->lnode->hdr.type == TN_PNTR) {
 						declaration->son1 = obj_tree(root->rnode->rnode);
 						treenode* p = root->rnode->lnode;
 						while(p != NULL && p->hdr.type == TN_PNTR) {
@@ -800,12 +889,28 @@ TreeNode *obj_tree(treenode *root) {
 					switchObj->son2 = obj_tree(root->rnode);
 					return switchObj;
 				}
-				case TN_INDEX:
+				case TN_INDEX: {
 					/* call for array - for HW2! */
-					obj_tree(root->lnode);
-					obj_tree(root->rnode);
-					break;
-
+					ArrayAccess* arrayAccess = new ArrayAccess();
+					treenode* p = root;
+					while(p != NULL && p->hdr.type == TN_INDEX) {
+						arrayAccess->dimCount++;
+						p = p->lnode;
+					}
+					arrayAccess->id = obj_tree(p);
+					if(p->hdr.type == TN_IDENT)
+						arrayAccess->ident = static_cast<Id*>(arrayAccess->id)->id_name;
+					else if(p->hdr.type == TN_DEREF)
+						arrayAccess->ident = ((Dereference*)arrayAccess->id)->GetIdentifier();
+					int dimCount = arrayAccess->dimCount;
+					arrayAccess->indicesNodes = new TreeNode*[arrayAccess->dimCount];
+					p = root;
+					while(p != NULL && p->hdr.type == TN_INDEX) {
+						arrayAccess->indicesNodes[--dimCount] = obj_tree(p->rnode);
+						p = p->lnode;
+					}
+					return arrayAccess;
+				}
 				case TN_DEREF:
 				{
 					/* pointer derefrence - for HW2! */
