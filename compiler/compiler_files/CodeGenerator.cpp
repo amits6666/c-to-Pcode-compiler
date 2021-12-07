@@ -23,7 +23,7 @@ class Variable {
 
 	/* Think! what does a Variable contain? */
 	string identifier, type;
-	int address, size;
+	int address, size, pointerDepth;
 	Variable *next;
 
 public:
@@ -31,11 +31,12 @@ public:
 		next = NULL;
 	}
 
-	Variable(string key, string type, int address, int size) {
+	Variable(string key, string type, int address, int size, int pointerDepth = 0) {
 		this->identifier = key;
 		this->size = size;
 		this->type = type;
 		this->address = address;
+		this->pointerDepth = pointerDepth;
 		next = NULL;
 	}
 
@@ -73,9 +74,9 @@ public:
 	}
 
 	// Function to insert an identifier
-	bool insert(string id, string type, int address, int size) {
+	bool insert(string id, string type, int address, int size, int pointerDepth = 0) {
 		int index = hashf(id);
-		Variable *p = new Variable(id, type, address, size);
+		Variable *p = new Variable(id, type, address, size, pointerDepth);
 
 		if (head[index] == NULL) {
 			head[index] = p;
@@ -246,7 +247,7 @@ public:
 	virtual void gencode(string c_type) {
 		int label = label_for++;
 		string prevBreakJump = breakJump;
-		breakJump = "for_end" + label;
+		breakJump = "for_end" + to_string(label);
 
 		init->gencode("coder");
 
@@ -271,7 +272,7 @@ public:
 	virtual void gencode(string c_type) {
 		int label = label_while++;
 		string prevBreakJump = breakJump;
-		breakJump = "while_end" + label;
+		breakJump = "while_end" + to_string(label);
 
 		cout << "while_loop" << label << ":" << endl;
 
@@ -293,7 +294,7 @@ public:
 	virtual void gencode(string c_type){
 		int label = label_doWhile++;
 		string prevBreakJump = breakJump;
-		breakJump = "doWhile_end" + label;
+		breakJump = "doWhile_end" + to_string(label);
 		cout << "doWhile_loop" << label << ":" << endl;
 		if(son1) son1->gencode("coder");
 		if(son2) son2->gencode("coder");
@@ -352,6 +353,7 @@ public:
 class Declaration : public TreeNode {
 public:
 	treenode* typeNode;
+	int pointerDepth = 0;
 
 	virtual void gencode(string c_type) {
 		string typeString;
@@ -370,14 +372,13 @@ public:
 				break;
 			}
 		}
-		//cout << "creating var " << static_cast<Id*>(son1)->id_name << " with address " << Stack_Address << endl;
-		ST.insert(static_cast<Id*>(son1)->id_name, typeString, Stack_Address++, 1); // you need to add the type and size according to declaration of identifier in AST
+		cout << "creating var " << static_cast<Id*>(son1)->id_name << " with address " << Stack_Address << endl;
+		ST.insert(static_cast<Id*>(son1)->id_name, typeString, Stack_Address++, 1, pointerDepth); // you need to add the type and size according to declaration of identifier in AST
 	}
 };
 
 class PrintNode : public TreeNode {
 public:
-
 	virtual void gencode(string c_type = "coder"){
 		son1->gencode("coder");
 		cout << "print" << endl;
@@ -395,6 +396,19 @@ public:
 
 	virtual void gencode(string c_type) {
 		cout << "ldc " << to_string(getValue()) << endl;
+	}
+};
+
+class Dereference : public TreeNode {
+	
+public:
+	int dereferenceDepth = 0;
+
+	virtual void gencode(string c_type){
+		son1->gencode(c_type);
+		for(int i = 0; i < dereferenceDepth; i++){
+			cout << "ind" << endl;
+		}
 	}
 };
 
@@ -664,7 +678,16 @@ TreeNode *obj_tree(treenode *root) {
 
 				case TN_DECL: {
 					Declaration *declaration = new Declaration();
-					declaration->son1 = obj_tree(root->rnode);
+					if(((leafnode*)root->rnode)->hdr.tok == TN_IDENT)
+						declaration->son1 = obj_tree(root->rnode);
+					else {
+						declaration->son1 = obj_tree(root->rnode->rnode);
+						treenode* p = root->rnode->lnode;
+						while(p->hdr.tok == TN_PNTR) {
+							declaration->pointerDepth++;
+							p = p->rnode;
+						}
+					}
 					declaration->typeNode = root->lnode->lnode;
 					return declaration;
 				}
@@ -781,11 +804,17 @@ TreeNode *obj_tree(treenode *root) {
 					break;
 
 				case TN_DEREF:
+				{
 					/* pointer derefrence - for HW2! */
-					obj_tree(root->lnode);
-					obj_tree(root->rnode);
-					break;
-
+					Dereference* dereference = new Dereference();
+					treenode* p = root;
+					while(p->hdr.tok == TN_DEREF) {
+						dereference->dereferenceDepth++;
+						p = p->rnode;
+					}
+					dereference->son1 = obj_tree(root->rnode);
+					return dereference;
+				}
 				case TN_SELECT:
 					/* struct case - for HW2! */
 					if (root->hdr.tok == ARROW) {
