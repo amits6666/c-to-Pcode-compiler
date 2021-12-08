@@ -229,7 +229,7 @@ public:
 	}
 
 	// Function to insert an identifier
-	bool insert(string id, int size) {
+	bool insert(string id, int size = 0) {
 		int index = hashf(id);
 		Struct *p = new Struct(id, size);
 
@@ -279,6 +279,11 @@ public:
 		if (son2 != NULL)
 			son2->gencode(c_type);
 	};
+};
+
+class VarTreeNode : public TreeNode {
+public:
+	virtual string GetIdentifier();
 };
 
 /*
@@ -488,7 +493,7 @@ public:
 	}
 };
 
-class Id : public TreeNode {
+class Id : public VarTreeNode {
 public:
 	string id_name;
 
@@ -504,6 +509,10 @@ public:
 			this->gencode("codel");
 			cout << "ind" << endl;
 		}
+	}
+
+	virtual string GetIdentifier(){
+		return id_name;
 	}
 };
 
@@ -565,6 +574,7 @@ public:
 };
 
 class ClassComponentDeclaration : public TreeNode {
+public:
 	treenode* typeNode;
 	int pointerDepth = 0, dimCount = 0;
 	int* dimSizes = NULL;
@@ -605,16 +615,25 @@ class ClassComponentDeclaration : public TreeNode {
 			size = 1;
 
 
-		cout << "creating var " << static_cast<Id*>(son1)->id_name << " with address " << Stack_Address << endl;
-		structTable.GetStruct(currentClassDeclaration)->insert(static_cast<Id*>(son1)->id_name, typeString, Stack_Address, size, pointerDepth, dimCount, dimSizes, typeSize); // you need to add the type and size according to declaration of identifier in AST
-		Stack_Address += size;
+		cout << "creating component var " << static_cast<Id*>(son1)->id_name << endl;
+		structTable.GetStruct(currentClassDeclaration)->insert(static_cast<Id*>(son1)->id_name, typeString, size, pointerDepth, dimCount, dimSizes, typeSize);
 	}
 };
 
-class StructSelector : public TreeNode {
+class StructSelector : public VarTreeNode {
 public:
+	bool arrow;
 	virtual void gencode(string c_type = "coder"){
-		son1->gencode()
+		son1->gencode(arrow?"coder":"codel");
+		cout << "inc " << structTable.GetStruct(static_cast<Id*>(son1)->id_name)->GetVariable(static_cast<Id*>(son2)->id_name)->size << endl;
+
+		if(c_type == "coder") {
+			cout << "ind" << endl;
+		}
+	}
+
+	virtual string GetIdentifier(){
+		return static_cast<VarTreeNode*>(son1)->GetIdentifier();
 	}
 };
 
@@ -640,7 +659,7 @@ public:
 	}
 };
 
-class Dereference : public TreeNode {
+class Dereference : public VarTreeNode {
 public:
 	int dereferenceDepth = 0;
 
@@ -651,12 +670,12 @@ public:
 		}
 	}
 
-	string GetIdentifier(){
-		return static_cast<Id*>(son1)->id_name;
+	virtual string GetIdentifier(){
+		return static_cast<VarTreeNode*>(son1)->GetIdentifier();
 	}
 };
 
-class ArrayAccess : public TreeNode {
+class ArrayAccess : public VarTreeNode {
 public:
 	int dimCount = 0;
 	TreeNode** indicesNodes;
@@ -665,25 +684,31 @@ public:
 	virtual void gencode(string c_type){
 		id->gencode("codel");
 
-		Variable arr = *ST.GetVariable(ident);
-		int accessShift = 0;
-		int dimMul = arr.typeSize;
-		for(int i = 1; i < arr.dimCount; i++){
-			dimMul *= arr.dimSizes[i];
+		Variable* arr = ST.GetVariable(ident);
+		int dimMul = 1;
+		if(arr) {
+			dimMul = arr->typeSize;
+			for (int i = 1; i < dimCount; i++) {
+				dimMul *= arr->dimSizes[i];
+			}
 		}
 		//cout << "arr dim count " << arr.dimCount << endl;
-		for(int i = 0; i < arr.dimCount; i++){
+		for(int i = 0; i < dimCount; i++){
 			indicesNodes[i]->gencode("coder");
 			cout << "ixa " << dimMul << endl;
-			if(i+1 != arr.dimCount)
-				dimMul /= arr.dimSizes[i+1];
+			if(i+1 != dimCount)
+				dimMul /= arr->dimSizes[i+1];
 		}
-		if(arr.dimCount == 0) {
+		if(dimCount == 0) {
 			indicesNodes[0]->gencode("coder");
 			cout << "ixa " << dimMul << endl;
 		}
 		if(c_type == "coder")
 			cout << "ind" << endl;
+	}
+
+	virtual string GetIdentifier(){
+		return static_cast<VarTreeNode*>(son1)->GetIdentifier();
 	}
 };
 
@@ -697,7 +722,9 @@ TreeNode *obj_tree(treenode *root);
 */
 int code_recur(treenode *root) {
 	TreeNode *tree_root = obj_tree(root);
+	cout << "created obj tree" << endl;
 	tree_root->gencode();
+	cout << "generated code" << endl;
 	return SUCCESS;
 }
 
@@ -707,12 +734,15 @@ int code_recur(treenode *root) {
 *	Output: Tree of objects 
 */
 TreeNode *obj_tree(treenode *root) {
+
 	if_node *ifn;
 	for_node *forn;
 	leafnode *leaf;
 	if (!root) {
 		return NULL;
+		cout << "recur null" << endl;
 	}
+	cout << "recur " << root->hdr.type << endl;
 
 	switch (root->hdr.which) {
 		case LEAF_T:
@@ -729,6 +759,7 @@ TreeNode *obj_tree(treenode *root) {
 							*	leaf->data.sval->str
 							*/
 				{
+					cout << "ident: " << leaf->data.sval->str << endl;
 					Id *ident = new Id(leaf->data.sval->str);
 					return ident;
 				}
@@ -860,11 +891,13 @@ TreeNode *obj_tree(treenode *root) {
 					obj_tree(root->rnode);
 					break;
 
-				case TN_TRANS_LIST:
-					/* Maybe you will use it later */
-					obj_tree(root->lnode);
-					obj_tree(root->rnode);
-					break;
+				case TN_TRANS_LIST:{
+					TreeNode *node = new TreeNode();
+					node->son1 = obj_tree(root->lnode);
+					cout << "passed defenitions" << endl;
+					node->son2 = obj_tree(root->rnode);
+					return node;
+				}
 
 				case TN_FUNC_DECL:
 					/* Maybe you will use it later */
@@ -984,14 +1017,13 @@ TreeNode *obj_tree(treenode *root) {
 				}
 
 				case TN_DECL: {
-					if(root->lnode->lnode != TN_TYPE && root->lnode->lnode != TN_OBJ_DEF) {
+					cout << "decl start: " << endl;
+					if(root->lnode->lnode->hdr.type != TN_TYPE && root->lnode->lnode->hdr.type != TN_ARRAY_DECL && root->lnode->lnode->hdr.type != TN_OBJ_REF) {
 						TreeNode* node = new TreeNode();
 						node->son1 = obj_tree(root->lnode);
-						node->son2 = obj_tree(root->rnode);
+						node->son2 = obj_tree(root->rnode);cout << "decl early end" << endl;
 						return node;
 					}
-
-
 					Declaration *declaration = new Declaration();
 					if (root->rnode == NULL)
 						break;
@@ -1021,7 +1053,7 @@ TreeNode *obj_tree(treenode *root) {
 						}
 					}
 					
-					declaration->typeNode = root->lnode->lnode;
+					declaration->typeNode = root->lnode->lnode;cout << "decl end" << endl;
 					return declaration;
 				}
 
@@ -1132,24 +1164,27 @@ TreeNode *obj_tree(treenode *root) {
 				}
 				case TN_INDEX: {
 					/* call for array - for HW2! */
+					cout << "INDEX start: " << endl;
 					ArrayAccess* arrayAccess = new ArrayAccess();
 					treenode* p = root;
 					while(p != NULL && p->hdr.type == TN_INDEX) {
 						arrayAccess->dimCount++;
 						p = p->lnode;
 					}
+					cout << "INDEX 1: " << endl;
 					arrayAccess->id = obj_tree(p);
-					if(p->hdr.type == TN_IDENT)
-						arrayAccess->ident = static_cast<Id*>(arrayAccess->id)->id_name;
-					else if(p->hdr.type == TN_DEREF)
-						arrayAccess->ident = ((Dereference*)arrayAccess->id)->GetIdentifier();
+					cout << "INDEX p type: " << p->hdr.type << endl;
+					arrayAccess->ident = (static_cast<VarTreeNode*>(arrayAccess->id)->GetIdentifier();}
+					cout << "INDEX 2: " << endl;
 					int dimCount = arrayAccess->dimCount;
 					arrayAccess->indicesNodes = new TreeNode*[arrayAccess->dimCount];
 					p = root;
+					cout << "INDEX 3: " << endl;
 					while(p != NULL && p->hdr.type == TN_INDEX) {
 						arrayAccess->indicesNodes[--dimCount] = obj_tree(p->rnode);
 						p = p->lnode;
 					}
+					cout << "INDEX end " << endl;
 					return arrayAccess;
 				}
 				case TN_DEREF:
@@ -1164,21 +1199,14 @@ TreeNode *obj_tree(treenode *root) {
 					dereference->son1 = obj_tree(p);
 					return dereference;
 				}
-				case TN_SELECT:
+				case TN_SELECT: {
 					/* struct case - for HW2! */
-					if (root->hdr.tok == ARROW) {
-						/* Struct select case "->" */
-						/* e.g. struct_variable->x; */
-						obj_tree(root->lnode);
-						obj_tree(root->rnode);
-					} else {
-						/* Struct select case "." */
-						/* e.g. struct_variable.x; */
-						obj_tree(root->lnode);
-						obj_tree(root->rnode);
-					}
-					break;
-
+					StructSelector* structSelector = new StructSelector();
+					structSelector->son1 = obj_tree(root->lnode);
+					structSelector->son2 = obj_tree(root->rnode);
+					structSelector->arrow = (root->hdr.tok == ARROW);
+					return structSelector;
+				}
 				case TN_ASSIGN:
 					if (root->hdr.tok == EQ) {
 						/* Regular assignment "=" */
