@@ -16,6 +16,7 @@ int label_doWhile = 0;
 string breakJump = "";
 int label_switch = 0;
 int label_case = 0;
+string currentClassDeclaration = "";
 
 
 
@@ -45,7 +46,6 @@ public:
 
 	friend class SymbolTable;
 };
-
 class SymbolTable {
 	/* Think! what can you add to  symbol_table */
 	Variable *head[MAX];
@@ -126,6 +126,141 @@ public:
 };
 
 SymbolTable ST;
+
+class Struct {
+	Variable *head[MAX];
+public:
+	string identifier;
+	int size;
+	Struct *next;
+
+	Struct() {
+		next = NULL;
+		for (int i = 0; i < MAX; i++)
+			head[i] = NULL;
+	}
+
+	Variable* GetVariable(string id){
+		int index = hashf(id);
+		Variable *start = head[index];
+
+		if (start == NULL)
+			return NULL;
+
+		while (start != NULL) {
+
+			if (start->identifier == id) {
+				return start;
+			}
+
+			start = start->next;
+		}
+
+		return NULL; // not found
+	}
+
+	// Function to insert an identifier
+	bool insert(string id, string type, int size, int pointerDepth = 0, int dimCount = 0, int* dimSizes = NULL, int typeSize = 1) {
+		int index = hashf(id);
+		Variable *p = new Variable(id, type, this->size, size, pointerDepth, dimCount, dimSizes, typeSize);
+		this->size += size;
+
+		if (head[index] == NULL) {
+			head[index] = p;
+			return true;
+		} else {
+			Variable *start = head[index];
+			while (start->next != NULL)
+				start = start->next;
+			start->next = p;
+			return true;
+		}
+
+		return false;
+	}
+
+	int hashf(string id) {
+		int asciiSum = 0;
+
+		for (int i = 0; i < id.length(); i++) {
+			asciiSum = asciiSum + id[i];
+		}
+
+		return (asciiSum % MAX);
+	}
+
+	Struct(string key, int size = 0) {
+		this->identifier = key;
+		this->size = size;
+		next = NULL;
+		for (int i = 0; i < MAX; i++)
+			head[i] = NULL;
+	}
+
+	friend class StructTable;
+};
+
+class StructTable {
+	Struct *head[MAX];
+public:
+
+	StructTable() {
+		for (int i = 0; i < MAX; i++)
+			head[i] = NULL;
+	}
+
+	Struct* GetStruct(string id){
+		int index = hashf(id);
+		Struct *start = head[index];
+
+		if (start == NULL)
+			return NULL;
+
+		while (start != NULL) {
+
+			if (start->identifier == id) {
+				return start;
+			}
+
+			start = start->next;
+		}
+
+		return NULL; // not found
+	}
+
+	// Function to insert an identifier
+	bool insert(string id, int size) {
+		int index = hashf(id);
+		Struct *p = new Struct(id, size);
+
+		if (head[index] == NULL) {
+			head[index] = p;
+			return true;
+		} else {
+			Struct *start = head[index];
+			while (start->next != NULL)
+				start = start->next;
+			start->next = p;
+			return true;
+		}
+
+		return false;
+	}
+
+	int hashf(string id) {
+		int asciiSum = 0;
+
+		for (int i = 0; i < id.length(); i++) {
+			asciiSum = asciiSum + id[i];
+		}
+
+		return (asciiSum % MAX);
+	}
+
+};
+
+StructTable structTable;
+
 
 class TreeNode { //base class
 public:
@@ -381,23 +516,28 @@ public:
 	virtual void gencode(string c_type) {
 		int size, typeSize = 1;
 		string typeString;
-		switch (typeNode->hdr.tok)
-		{
-			case INT: {
-				typeString = "int";
-				typeSize = 1;
-				break;
+		if(typeNode->hdr.type == TN_TYPE) {
+			switch (typeNode->hdr.tok) {
+				case INT: {
+					typeString = "int";
+					typeSize = 1;
+					break;
+				}
+				case FLOAT: {
+					typeString = "float";
+					typeSize = 1;
+					break;
+				}
+				case DOUBLE: {
+					typeString = "double";
+					typeSize = 1;
+					break;
+				}
 			}
-			case FLOAT: {
-				typeString = "float";
-				typeSize = 1;
-				break;
-			}
-			case DOUBLE: {
-				typeString = "double";
-				typeSize = 1;
-				break;
-			}
+		}
+		else {
+			typeString = ((leafnode*)(typeNode->lnode))->data.sval->str;
+			typeSize = structTable.GetStruct(typeString)->size;
 		}
 
 		size = typeSize;
@@ -412,6 +552,69 @@ public:
 		cout << "creating var " << static_cast<Id*>(son1)->id_name << " with address " << Stack_Address << endl;
 		ST.insert(static_cast<Id*>(son1)->id_name, typeString, Stack_Address, size, pointerDepth, dimCount, dimSizes, typeSize); // you need to add the type and size according to declaration of identifier in AST
 		Stack_Address += size;
+	}
+};
+
+class ClassDeclaration : public TreeNode {
+public:
+	virtual void gencode(string c_type) {
+		structTable.insert(static_cast<Id*>(son1)->id_name);
+		currentClassDeclaration = static_cast<Id*>(son1)->id_name;
+		son2->gencode(c_type);
+	}
+};
+
+class ClassComponentDeclaration : public TreeNode {
+	treenode* typeNode;
+	int pointerDepth = 0, dimCount = 0;
+	int* dimSizes = NULL;
+
+	virtual void gencode(string c_type) {
+		int size, typeSize = 1;
+		string typeString;
+		if(typeNode->hdr.type == TN_TYPE) {
+			switch (typeNode->hdr.tok) {
+				case INT: {
+					typeString = "int";
+					typeSize = 1;
+					break;
+				}
+				case FLOAT: {
+					typeString = "float";
+					typeSize = 1;
+					break;
+				}
+				case DOUBLE: {
+					typeString = "double";
+					typeSize = 1;
+					break;
+				}
+			}
+		}
+		else {
+			typeString = ((leafnode*)(typeNode->lnode))->data.sval->str;
+			typeSize = structTable.GetStruct(typeString)->size;
+		}
+
+		size = typeSize;
+		for(int i = 0; i < dimCount; i++){
+			size *= dimSizes[i];
+		}
+
+		if(pointerDepth != 0)
+			size = 1;
+
+
+		cout << "creating var " << static_cast<Id*>(son1)->id_name << " with address " << Stack_Address << endl;
+		structTable.GetStruct(currentClassDeclaration)->insert(static_cast<Id*>(son1)->id_name, typeString, Stack_Address, size, pointerDepth, dimCount, dimSizes, typeSize); // you need to add the type and size according to declaration of identifier in AST
+		Stack_Address += size;
+	}
+};
+
+class StructSelector : public TreeNode {
+public:
+	virtual void gencode(string c_type = "coder"){
+		son1->gencode()
 	}
 };
 
@@ -462,12 +665,9 @@ public:
 	virtual void gencode(string c_type){
 		id->gencode("codel");
 
-		//cout << "1" << endl;
 		Variable arr = *ST.GetVariable(ident);
-		//cout << "2" << endl;
 		int accessShift = 0;
 		int dimMul = arr.typeSize;
-		//cout << "3" << endl;
 		for(int i = 1; i < arr.dimCount; i++){
 			dimMul *= arr.dimSizes[i];
 		}
@@ -482,7 +682,6 @@ public:
 			indicesNodes[0]->gencode("coder");
 			cout << "ixa " << dimMul << endl;
 		}
-		//cout << "5" << endl;
 		if(c_type == "coder")
 			cout << "ind" << endl;
 	}
@@ -724,12 +923,13 @@ TreeNode *obj_tree(treenode *root) {
 					obj_tree(root->rnode);
 					break;
 
-				case TN_FIELD_LIST:
+				case TN_FIELD_LIST: {
 					/* Maybe you will use it later */
-					obj_tree(root->lnode);
-					obj_tree(root->rnode);
-					break;
-
+					TreeNode *node = new TreeNode();
+					node->son1 = obj_tree(root->lnode);
+					node->son2 = obj_tree(root->rnode);
+					return node;
+				}
 				case TN_PARAM_LIST:
 					/* Maybe you will use it later */
 					obj_tree(root->lnode);
@@ -742,19 +942,56 @@ TreeNode *obj_tree(treenode *root) {
 					obj_tree(root->rnode);
 					break;
 
-				case TN_TYPE_LIST:
-					/* Maybe you will use it later */
-					obj_tree(root->lnode);
-					obj_tree(root->rnode);
-					break;
+				case TN_TYPE_LIST: {
+					TreeNode* node = new TreeNode();
+					node->son1 = obj_tree(root->lnode);
+					node->son2 = obj_tree(root->rnode);
+					return node;
+				}
 
-				case TN_COMP_DECL:
-					/* struct component declaration - for HW2 */
-					obj_tree(root->lnode);
-					obj_tree(root->rnode);
-					break;
+				case TN_COMP_DECL: {
+					ClassComponentDeclaration *declaration = new ClassComponentDeclaration();
+					if (root->rnode == NULL)
+						break;
+					else if(root->rnode->hdr.type == TN_IDENT)
+						declaration->son1 = obj_tree(root->rnode);
+					else if(root->rnode->hdr.type == TN_ARRAY_DECL) {
+						treenode* p = root->rnode;
+						while(p != NULL && p->hdr.type == TN_ARRAY_DECL) {
+							declaration->dimCount++;
+							p = p->lnode;
+						}
+						declaration->son1 = obj_tree(p);
+						int dimCount = declaration->dimCount;
+						declaration->dimSizes = new int[declaration->dimCount];
+						p = root->rnode;
+						while(p != NULL && p->hdr.type == TN_ARRAY_DECL) {
+							declaration->dimSizes[--dimCount] = ((leafnode*)p->rnode)->data.ival;
+							p = p->lnode;
+						}
+					}
+					else if(root->rnode->lnode->hdr.type == TN_PNTR) {
+						declaration->son1 = obj_tree(root->rnode->rnode);
+						treenode* p = root->rnode->lnode;
+						while(p != NULL && p->hdr.type == TN_PNTR) {
+							declaration->pointerDepth++;
+							p = p->rnode;
+						}
+					}
+
+					declaration->typeNode = root->lnode->lnode;
+					return declaration;
+				}
 
 				case TN_DECL: {
+					if(root->lnode->lnode != TN_TYPE && root->lnode->lnode != TN_OBJ_DEF) {
+						TreeNode* node = new TreeNode();
+						node->son1 = obj_tree(root->lnode);
+						node->son2 = obj_tree(root->rnode);
+						return node;
+					}
+
+
 					Declaration *declaration = new Declaration();
 					if (root->rnode == NULL)
 						break;
@@ -851,11 +1088,11 @@ TreeNode *obj_tree(treenode *root) {
 					obj_tree(root->rnode);
 					break;
 
-				case TN_OBJ_DEF:
-					/* Maybe you will use it later */
-					obj_tree(root->lnode);
-					obj_tree(root->rnode);
-					break;
+				case TN_OBJ_DEF: {
+					ClassDeclaration* classDeclaration = new ClassDeclaration();
+					classDeclaration->son1 = obj_tree(root->lnode);
+					classDeclaration->son2 = obj_tree(root->rnode);
+				}
 
 				case TN_OBJ_REF:
 					/* Maybe you will use it later */
