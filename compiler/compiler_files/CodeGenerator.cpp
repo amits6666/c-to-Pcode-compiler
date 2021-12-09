@@ -163,7 +163,7 @@ public:
 	bool insert(string id, string type, int size, int pointerDepth = 0, int dimCount = 0, int* dimSizes = NULL, int typeSize = 1) {
 		int index = hashf(id);
 		Variable *p = new Variable(id, type, this->size, size, pointerDepth, dimCount, dimSizes, typeSize);
-		cout << id << " at offset " << this->size << endl;
+		//cout << id << " at offset " << this->size << endl;
 		this->size += size;
 
 		if (head[index] == NULL) {
@@ -580,7 +580,7 @@ public:
 			size = 1;
 
 
-		cout << "creating var " << static_cast<Id*>(son1)->id_name << " with address " << Stack_Address << endl;
+		//cout << "creating var " << static_cast<Id*>(son1)->id_name << " with address " << Stack_Address << endl;
 		ST.insert(static_cast<Id*>(son1)->id_name, typeString, Stack_Address, size, pointerDepth, dimCount, dimSizes, typeSize); // you need to add the type and size according to declaration of identifier in AST
 		Stack_Address += size;
 	}
@@ -637,7 +637,7 @@ public:
 			size = 1;
 
 
-		cout << "creating component var " << static_cast<Id*>(son1)->id_name << endl;
+		//cout << "creating component var " << static_cast<Id*>(son1)->id_name << endl;
 		structTable.GetStruct(currentClassDeclaration)->insert(static_cast<Id*>(son1)->id_name, typeString, size, pointerDepth, dimCount, dimSizes, typeSize);
 	}
 };
@@ -761,9 +761,7 @@ TreeNode *obj_tree(treenode *root);
 *	Output: prints the Pcode on the console
 */
 int code_recur(treenode *root) {
-	cout << "-----------------------------------------------" << endl;
 	TreeNode *tree_root = obj_tree(root);
-	cout << "-----------------------------------------------" << endl;
 	tree_root->gencode();
 	return SUCCESS;
 }
