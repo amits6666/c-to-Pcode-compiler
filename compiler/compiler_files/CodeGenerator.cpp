@@ -260,6 +260,12 @@ public:
 
 StructTable structTable;
 
+int TypeToSize(string type, bool isPointer = false){
+	if(isPointer || type == "int" || type == "double" || type == "float")
+		return 1;
+	else
+		return structTable.GetStruct(type)->size;
+}
 
 class TreeNode { //base class
 public:
@@ -715,7 +721,7 @@ public:
 		Variable* arr = ST.GetVariable(ident);
 		int dimMul = 1;
 		if(arr) {
-			dimMul = arr->typeSize;
+			dimMul = TypeToSize(GetType(), GetPointerDepth()>0);
 			for (int i = 1; i < dimCount; i++) {
 				dimMul *= arr->dimSizes[i];
 			}
@@ -739,7 +745,7 @@ public:
 		return static_cast<VarTreeNode*>(id)->GetIdentifier();
 	}
 	virtual string GetType(){
-		return ST.GetVariable(GetIdentifier())->type;
+		return static_cast<VarTreeNode*>(id)->GetType();
 	}
 	virtual int GetPointerDepth(){
 		return static_cast<VarTreeNode*>(id)->GetPointerDepth();
@@ -755,7 +761,9 @@ TreeNode *obj_tree(treenode *root);
 *	Output: prints the Pcode on the console
 */
 int code_recur(treenode *root) {
+	cout << "-----------------------------------------------" << endl;
 	TreeNode *tree_root = obj_tree(root);
+	cout << "-----------------------------------------------" << endl;
 	tree_root->gencode();
 	return SUCCESS;
 }
