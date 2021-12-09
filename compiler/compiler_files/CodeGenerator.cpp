@@ -163,6 +163,7 @@ public:
 	bool insert(string id, string type, int size, int pointerDepth = 0, int dimCount = 0, int* dimSizes = NULL, int typeSize = 1) {
 		int index = hashf(id);
 		Variable *p = new Variable(id, type, this->size, size, pointerDepth, dimCount, dimSizes, typeSize);
+		cout << id << " at offset " << this->size << endl;
 		this->size += size;
 
 		if (head[index] == NULL) {
@@ -212,7 +213,6 @@ public:
 	Struct* GetStruct(string id){
 		int index = hashf(id);
 		Struct *start = head[index];
-
 		if (start == NULL)
 			return NULL;
 
@@ -232,7 +232,6 @@ public:
 	bool insert(string id, int size = 0) {
 		int index = hashf(id);
 		Struct *p = new Struct(id, size);
-
 		if (head[index] == NULL) {
 			head[index] = p;
 			return true;
@@ -283,7 +282,18 @@ public:
 
 class VarTreeNode : public TreeNode {
 public:
-	virtual string GetIdentifier();
+	virtual string GetIdentifier(){
+		cout << "this shouldn't happen 1" << endl;
+		return "this shouldn't happen 1";
+	}
+	virtual string GetType(){
+		cout << "this shouldn't happen 2" << endl;
+		return "this shouldn't happen 2";
+	}
+	virtual int GetPointerDepth(){
+		cout << "this shouldn't happen 3" << endl;
+		return -1;
+	}
 };
 
 /*
@@ -514,6 +524,12 @@ public:
 	virtual string GetIdentifier(){
 		return id_name;
 	}
+	virtual string GetType(){
+		return ST.GetVariable(GetIdentifier())->type;
+	}
+	virtual int GetPointerDepth(){
+		return ST.GetVariable(GetIdentifier())->pointerDepth;
+	}
 };
 
 class Declaration : public TreeNode {
@@ -567,8 +583,8 @@ public:
 class ClassDeclaration : public TreeNode {
 public:
 	virtual void gencode(string c_type) {
-		structTable.insert(static_cast<Id*>(son1)->id_name);
-		currentClassDeclaration = static_cast<Id*>(son1)->id_name;
+		structTable.insert(static_cast<VarTreeNode*>(son1)->GetIdentifier());
+		currentClassDeclaration = static_cast<VarTreeNode*>(son1)->GetIdentifier();
 		son2->gencode(c_type);
 	}
 };
@@ -625,7 +641,7 @@ public:
 	bool arrow;
 	virtual void gencode(string c_type = "coder"){
 		son1->gencode(arrow?"coder":"codel");
-		cout << "inc " << structTable.GetStruct(static_cast<Id*>(son1)->id_name)->GetVariable(static_cast<Id*>(son2)->id_name)->size << endl;
+		cout << "inc " << structTable.GetStruct(static_cast<VarTreeNode*>(son1)->GetType())->GetVariable(static_cast<VarTreeNode*>(son2)->GetIdentifier())->address << endl;
 
 		if(c_type == "coder") {
 			cout << "ind" << endl;
@@ -634,6 +650,12 @@ public:
 
 	virtual string GetIdentifier(){
 		return static_cast<VarTreeNode*>(son1)->GetIdentifier();
+	}
+	virtual string GetType(){
+		return structTable.GetStruct(static_cast<VarTreeNode*>(son1)->GetType())->GetVariable(static_cast<VarTreeNode*>(son2)->GetIdentifier())->type;
+	}
+	virtual int GetPointerDepth(){
+		return static_cast<VarTreeNode*>(son1)->GetPointerDepth();
 	}
 };
 
@@ -673,6 +695,12 @@ public:
 	virtual string GetIdentifier(){
 		return static_cast<VarTreeNode*>(son1)->GetIdentifier();
 	}
+	virtual string GetType(){
+		return static_cast<VarTreeNode*>(son1)->GetType();
+	}
+	virtual int GetPointerDepth(){
+		return static_cast<VarTreeNode*>(son1)->GetPointerDepth() - dereferenceDepth;
+	}
 };
 
 class ArrayAccess : public VarTreeNode {
@@ -708,7 +736,13 @@ public:
 	}
 
 	virtual string GetIdentifier(){
-		return static_cast<VarTreeNode*>(son1)->GetIdentifier();
+		return static_cast<VarTreeNode*>(id)->GetIdentifier();
+	}
+	virtual string GetType(){
+		return ST.GetVariable(GetIdentifier())->type;
+	}
+	virtual int GetPointerDepth(){
+		return static_cast<VarTreeNode*>(id)->GetPointerDepth();
 	}
 };
 
@@ -1124,6 +1158,7 @@ TreeNode *obj_tree(treenode *root) {
 					ClassDeclaration* classDeclaration = new ClassDeclaration();
 					classDeclaration->son1 = obj_tree(root->lnode);
 					classDeclaration->son2 = obj_tree(root->rnode);
+					return classDeclaration;
 				}
 
 				case TN_OBJ_REF:
@@ -1174,7 +1209,7 @@ TreeNode *obj_tree(treenode *root) {
 					cout << "INDEX 1: " << endl;
 					arrayAccess->id = obj_tree(p);
 					cout << "INDEX p type: " << p->hdr.type << endl;
-					arrayAccess->ident = (static_cast<VarTreeNode*>(arrayAccess->id)->GetIdentifier();}
+					arrayAccess->ident = static_cast<VarTreeNode*>(arrayAccess->id)->GetIdentifier();
 					cout << "INDEX 2: " << endl;
 					int dimCount = arrayAccess->dimCount;
 					arrayAccess->indicesNodes = new TreeNode*[arrayAccess->dimCount];
