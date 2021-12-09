@@ -756,9 +756,7 @@ TreeNode *obj_tree(treenode *root);
 */
 int code_recur(treenode *root) {
 	TreeNode *tree_root = obj_tree(root);
-	cout << "created obj tree" << endl;
 	tree_root->gencode();
-	cout << "generated code" << endl;
 	return SUCCESS;
 }
 
@@ -774,9 +772,8 @@ TreeNode *obj_tree(treenode *root) {
 	leafnode *leaf;
 	if (!root) {
 		return NULL;
-		cout << "recur null" << endl;
 	}
-	cout << "recur " << root->hdr.type << endl;
+	//cout << "recur " << root->hdr.type << endl;
 
 	switch (root->hdr.which) {
 		case LEAF_T:
@@ -793,7 +790,7 @@ TreeNode *obj_tree(treenode *root) {
 							*	leaf->data.sval->str
 							*/
 				{
-					cout << "ident: " << leaf->data.sval->str << endl;
+					//cout << "ident: " << leaf->data.sval->str << endl;
 					Id *ident = new Id(leaf->data.sval->str);
 					return ident;
 				}
@@ -928,7 +925,6 @@ TreeNode *obj_tree(treenode *root) {
 				case TN_TRANS_LIST:{
 					TreeNode *node = new TreeNode();
 					node->son1 = obj_tree(root->lnode);
-					cout << "passed defenitions" << endl;
 					node->son2 = obj_tree(root->rnode);
 					return node;
 				}
@@ -958,9 +954,7 @@ TreeNode *obj_tree(treenode *root) {
 
 				case TN_BLOCK:
 					/* Maybe you will use it later */
-					//TODO: i dont think this is right
 				{
-					cout << "reached block " << endl;
 					TreeNode *block = new TreeNode();
 					block->son1 = obj_tree(root->lnode);
 					block->son2 = obj_tree(root->rnode);
@@ -1051,11 +1045,10 @@ TreeNode *obj_tree(treenode *root) {
 				}
 
 				case TN_DECL: {
-					cout << "decl start: " << endl;
 					if(root->lnode->lnode->hdr.type != TN_TYPE && root->lnode->lnode->hdr.type != TN_ARRAY_DECL && root->lnode->lnode->hdr.type != TN_OBJ_REF) {
 						TreeNode* node = new TreeNode();
 						node->son1 = obj_tree(root->lnode);
-						node->son2 = obj_tree(root->rnode);cout << "decl early end" << endl;
+						node->son2 = obj_tree(root->rnode);
 						return node;
 					}
 					Declaration *declaration = new Declaration();
@@ -1087,7 +1080,7 @@ TreeNode *obj_tree(treenode *root) {
 						}
 					}
 					
-					declaration->typeNode = root->lnode->lnode;cout << "decl end" << endl;
+					declaration->typeNode = root->lnode->lnode;
 					return declaration;
 				}
 
@@ -1108,7 +1101,6 @@ TreeNode *obj_tree(treenode *root) {
 
 				case TN_STEMNT_LIST:
 					/* Maybe you will use it later */
-					//TODO: i dont think this is right
 				{
 					TreeNode *statementList = new TreeNode();
 					statementList->son1 = obj_tree(root->lnode);
@@ -1117,7 +1109,6 @@ TreeNode *obj_tree(treenode *root) {
 				}
 				case TN_STEMNT:
 					/* Maybe you will use it later */
-					//TODO: i dont think this is right
 				{
 					TreeNode *statement = new TreeNode();
 					statement->son1 = obj_tree(root->lnode);
@@ -1199,27 +1190,21 @@ TreeNode *obj_tree(treenode *root) {
 				}
 				case TN_INDEX: {
 					/* call for array - for HW2! */
-					cout << "INDEX start: " << endl;
 					ArrayAccess* arrayAccess = new ArrayAccess();
 					treenode* p = root;
 					while(p != NULL && p->hdr.type == TN_INDEX) {
 						arrayAccess->dimCount++;
 						p = p->lnode;
 					}
-					cout << "INDEX 1: " << endl;
 					arrayAccess->id = obj_tree(p);
-					cout << "INDEX p type: " << p->hdr.type << endl;
 					arrayAccess->ident = static_cast<VarTreeNode*>(arrayAccess->id)->GetIdentifier();
-					cout << "INDEX 2: " << endl;
 					int dimCount = arrayAccess->dimCount;
 					arrayAccess->indicesNodes = new TreeNode*[arrayAccess->dimCount];
 					p = root;
-					cout << "INDEX 3: " << endl;
 					while(p != NULL && p->hdr.type == TN_INDEX) {
 						arrayAccess->indicesNodes[--dimCount] = obj_tree(p->rnode);
 						p = p->lnode;
 					}
-					cout << "INDEX end " << endl;
 					return arrayAccess;
 				}
 				case TN_DEREF:
