@@ -17,6 +17,8 @@ string breakJump = "";
 int label_switch = 0;
 int label_case = 0;
 string currentClassDeclaration = "";
+bool switchCondConst = false;
+double switchConstCondCaseVal = 0;
 
 
 
@@ -360,31 +362,42 @@ public:
 class If : public TreeNode { //son1 - cond, son2 - then
 public:
 	TreeNode* elseNode = NULL;
+	bool condConst = false;
+	double condVal;
 
 	virtual void gencode(string c_type) {
 		int label;
-		if(elseNode == NULL)
-			label = label_if++;
-		else {
-			label = label_ifelse++;
+		if(condConst){
+			//cout << "if is const" << endl;
+			if(condVal)
+				son2->gencode();
+			else if(elseNode != NULL)
+				elseNode->gencode();
 		}
-
-		son1->gencode("coder");
-
-		if(elseNode == NULL)
-			cout << "fjp if_end" << label << endl;
-		else
-			cout << "fjp ifelse_else" << label << endl;
-
-		son2->gencode();
-
-		if(elseNode == NULL)
-			cout << "if_end" << label << ":" << endl;
 		else {
-			cout << "ujp ifelse_end" << label << endl;
-			cout << "ifelse_else" << label << ":" << endl;
-			elseNode->gencode();
-			cout << "ifelse_end" << label << ":" << endl;
+			if (elseNode == NULL)
+				label = label_if++;
+			else {
+				label = label_ifelse++;
+			}
+
+			son1->gencode("coder");
+
+			if (elseNode == NULL)
+				cout << "fjp if_end" << label << endl;
+			else
+				cout << "fjp ifelse_else" << label << endl;
+
+			son2->gencode();
+
+			if (elseNode == NULL)
+				cout << "if_end" << label << ":" << endl;
+			else {
+				cout << "ujp ifelse_end" << label << endl;
+				cout << "ifelse_else" << label << ":" << endl;
+				elseNode->gencode();
+				cout << "ifelse_end" << label << ":" << endl;
+			}
 		}
 	}
 };
@@ -392,28 +405,38 @@ public:
 class ConditionExpression : public TreeNode { //son1 - cond, son2 - then
 public:
 	TreeNode* elseNode = NULL;
+	bool condConst = false;
+	double condVal;
 
 	virtual void gencode(string c_type) {
-		int label = label_cond++;
+		if(condConst){
+			if(condVal)
+				son2->gencode();
+			else
+				elseNode->gencode();
+		}
+		else {
+			int label = label_cond++;
 
-		son1->gencode("coder");
+			son1->gencode("coder");
 
-		cout << "fjp cond_else" << label << endl;
+			cout << "fjp cond_else" << label << endl;
 
-		son2->gencode();
+			son2->gencode();
 
-		cout << "ujp condLabel_end" << label << endl;
-		cout << "cond_else" << label << ":" << endl;
-		elseNode->gencode();
-		cout << "condLabel_end" << label << ":" << endl;
-
+			cout << "ujp condLabel_end" << label << endl;
+			cout << "cond_else" << label << ":" << endl;
+			elseNode->gencode();
+			cout << "condLabel_end" << label << ":" << endl;
+		}
 	}
 };
 
 class Break : public TreeNode {
 public:
 	virtual void gencode(string c_type) {
-		cout << "ujp " << breakJump << endl;
+		if(breakJump != "")
+			cout << "ujp " << breakJump << endl;
 	}
 };
 
@@ -483,29 +506,44 @@ public:
 
 class Switch : public TreeNode {
 public:
+	bool condConst = false;
+	double condVal;
 
 	virtual void gencode(string c_type = "coder"){
-		label_case = 0;
-		string prevBreakJump = breakJump;
-		breakJump = "switch_end" + to_string(label_switch);
-		son1->gencode("coder");
-		son2->gencode();
-		cout << "switch" << label_switch << "_case" << label_case << ":" << endl;
-		cout << "switch_end" << label_switch++ << ":" << endl;
-		breakJump = prevBreakJump;
+		switchCondConst = condConst;
+		if(!condConst) {
+			label_case = 0;
+			string prevBreakJump = breakJump;
+			breakJump = "switch_end" + to_string(label_switch);
+			son1->gencode("coder");
+			son2->gencode();
+			cout << "switch" << label_switch << "_case" << label_case << ":" << endl;
+			cout << "switch_end" << label_switch++ << ":" << endl;
+			breakJump = prevBreakJump;
+		}
+		else{
+			switchConstCondCaseVal = condVal;
+			son2->gencode();
+		}
 	}
 };
 
 class Case : public TreeNode {
 public:
+	double val;
 
 	virtual void gencode(string c_type = "coder"){
-		cout << "switch" << label_switch << "_case" << label_case++ << ":" << endl;
-		cout << "dpl" << endl;
-		son1->gencode("coder");
-		cout << "equ" << endl;
-		cout << "fjp " << "switch" << label_switch << "_case" << label_case << endl;
-		son2->gencode();
+		if(!switchCondConst) {
+			cout << "switch" << label_switch << "_case" << label_case++ << ":" << endl;
+			cout << "dpl" << endl;
+			son1->gencode("coder");
+			cout << "equ" << endl;
+			cout << "fjp " << "switch" << label_switch << "_case" << label_case << endl;
+			son2->gencode();
+		}
+		else if(val == switchConstCondCaseVal){
+			son2->gencode();
+		}
 	}
 };
 
@@ -755,6 +793,331 @@ public:
 
 
 TreeNode *obj_tree(treenode *root);
+bool calculate_expression(treenode *root, double &ret);
+bool search_case(treenode *root, double src);
+
+/*
+ * 	Input: Tree of expression and ret var
+ * 	Output: returns is the expression constant, if it is then ret is set to its value
+ */
+bool calculate_expression(treenode *root, double &ret) {
+	leafnode *leaf;
+	if_node *ifn;
+	if (!root) {
+		return true;
+	}
+	//cout << "recur " << root->hdr.type << endl;
+
+	switch (root->hdr.which) {
+		case LEAF_T:
+			leaf = (leafnode *) root;
+			switch (leaf->hdr.type) {
+
+				case TN_IDENT:
+				{
+					return false;
+				}
+
+				case TN_INT:
+					/* Constant case */
+					/*
+							*	In order to get the int value you have to use:
+							*	leaf->data.ival
+							*/
+				{
+					ret = (leaf->data.ival);
+					return true;
+				}
+
+				case TN_REAL: {
+					/* Constant case */
+					/*
+							*	In order to get the real value you have to use:
+							*	leaf->data.dval
+							*/
+					ret = (leaf->data.dval);
+					return true;
+				}
+			}
+			break;
+		case IF_T:
+			ifn = (if_node *) root;
+			switch (ifn->hdr.type) {
+				case TN_COND_EXPR:{
+					double retCond;
+					if(calculate_expression(ifn->cond, retCond)){
+						if(retCond)
+							return (calculate_expression(ifn->then_n, ret));
+						else
+							return (calculate_expression(ifn->else_n, ret));
+					}
+					return false;
+				}
+			}
+		case NODE_T:
+			switch (root->hdr.type) {
+				case TN_EXPR:
+					switch (root->hdr.tok) {
+						case CASE:
+							break;
+
+						case INCR:
+							/* Increment token "++" */
+						{
+							double returned;
+							treenode* varSon = (root->rnode == NULL)?root->lnode:root->rnode;
+							if (calculate_expression(varSon, returned)){
+								ret = returned++;
+								return true;
+							}
+							else
+								return false;
+						}
+
+						case DECR:
+							/* Decrement token "--" */
+						{
+							double returned;
+							treenode* varSon = (root->rnode == NULL)?root->lnode:root->rnode;
+							if (calculate_expression(varSon, returned)){
+								ret = returned--;
+								return true;
+							}
+							else
+								return false;
+						}
+						case PLUS:
+							/* Plus token "+" */
+						{
+							double ret1, ret2;
+							bool const1, const2;
+							const1 = calculate_expression(root->lnode, ret1);
+							const2 = calculate_expression(root->rnode, ret2);
+
+							if(!(const1 && const2))
+								return false;
+
+							ret = ret1 + ret2;
+							return true;
+						}
+						case MINUS:
+							/* Minus token "-" */
+						{
+							double ret1, ret2;
+							bool const1, const2;
+							const1 = calculate_expression(root->lnode, ret1);
+							const2 = calculate_expression(root->rnode, ret2);
+
+							if(!(const1 && const2))
+								return false;
+
+							ret = ret1 - ret2;
+							return true;
+						}
+						case DIV:
+							/* Divide token "/" */
+						{
+							double ret1, ret2;
+							bool const1, const2;
+							const1 = calculate_expression(root->lnode, ret1);
+							const2 = calculate_expression(root->rnode, ret2);
+							//cout << "div: " << to_string(const1) << " | " << to_string(const2) << " | " << to_string(ret1) << " | " << to_string(ret2) << endl;
+							if(const1 && const2)
+								ret = ret1 / ret2;
+							else if(const1 && ret1 == 0)
+								ret = 0;
+							else
+								return false;
+
+							return true;
+						}
+						case STAR:
+							/* multiply token "*" */
+						{
+							double ret1, ret2;
+							bool const1, const2;
+							const1 = calculate_expression(root->lnode, ret1);
+							const2 = calculate_expression(root->rnode, ret2);
+							//cout << "star: " << to_string(const1) << " | " << to_string(const2) << " | " << to_string(ret1) << " | " << to_string(ret2) << endl;
+							if(const1 && const2)
+								ret = ret1 * ret2;
+							else if((const1 && (ret1 == 0)) || (const2 && (ret2 == 0)))
+								ret = 0;
+							else
+								return false;
+
+							return true;
+						}
+						case AND:
+							/* And token "&&" */
+						{
+							double ret1, ret2;
+							bool const1, const2;
+							const1 = calculate_expression(root->lnode, ret1);
+							const2 = calculate_expression(root->rnode, ret2);
+
+							if(const1 && const2)
+								ret = ret1 && ret2;
+							else if((const1 && ret1 == 0) || (const2 && ret2 == 0))
+								ret = 0;
+							else
+								return false;
+
+							return true;
+						}
+						case OR:
+							/* Or token "||" */
+						{
+							double ret1, ret2;
+							bool const1, const2;
+							const1 = calculate_expression(root->lnode, ret1);
+							const2 = calculate_expression(root->rnode, ret2);
+
+							if(const1 && const2)
+								ret = ret1 || ret2;
+							else if((const1 && ret1 != 0) || (const2 && ret2 != 0))
+								ret = 1;
+							else
+								return false;
+
+							return true;
+						}
+						case NOT:
+							/* Not token "!" */
+						{
+							double ret1;
+							bool const1;
+							const1 = calculate_expression(root->lnode, ret1);
+
+							if(!(const1))
+								return false;
+
+							ret = !ret1;
+							return true;
+						}
+						case GRTR:
+							/* Greater token ">" */
+						{
+							double ret1, ret2;
+							bool const1, const2;
+							const1 = calculate_expression(root->lnode, ret1);
+							const2 = calculate_expression(root->rnode, ret2);
+
+							if(!(const1 && const2))
+								return false;
+
+							ret = ret1 > ret2;
+							return true;
+						}
+						case LESS:
+							/* Less token "<" */
+						{
+							double ret1, ret2;
+							bool const1, const2;
+							const1 = calculate_expression(root->lnode, ret1);
+							const2 = calculate_expression(root->rnode, ret2);
+
+							if(!(const1 && const2))
+								return false;
+
+							ret = ret1 < ret2;
+							return true;
+						}
+						case EQUAL:
+							/* Equal token "==" */
+						{
+							double ret1, ret2;
+							bool const1, const2;
+							const1 = calculate_expression(root->lnode, ret1);
+							const2 = calculate_expression(root->rnode, ret2);
+
+							if(!(const1 && const2))
+								return false;
+
+							ret = ret1 == ret2;
+							return true;
+						}
+						case NOT_EQ:
+							/* Not equal token "!=" */
+						{
+							double ret1, ret2;
+							bool const1, const2;
+							const1 = calculate_expression(root->lnode, ret1);
+							const2 = calculate_expression(root->rnode, ret2);
+
+							if(!(const1 && const2))
+								return false;
+
+							ret = ret1 != ret2;
+							return true;
+						}
+						case LESS_EQ:
+							/* Less or equal token "<=" */
+						{
+							double ret1, ret2;
+							bool const1, const2;
+							const1 = calculate_expression(root->lnode, ret1);
+							const2 = calculate_expression(root->rnode, ret2);
+
+							if(!(const1 && const2))
+								return false;
+
+							ret = ret1 <= ret2;
+							return true;
+						}
+						case GRTR_EQ:
+							/* Greater or equal token ">=" */
+						{
+							double ret1, ret2;
+							bool const1, const2;
+							const1 = calculate_expression(root->lnode, ret1);
+							const2 = calculate_expression(root->rnode, ret2);
+
+							if(!(const1 && const2))
+								return false;
+
+							ret = ret1 >= ret2;
+							return true;
+						}
+						default:
+							cout << "calculate_expression expression operation unrecognized" << endl;
+							double ret;
+							return calculate_expression(root->lnode, ret) && calculate_expression(root->rnode, ret);
+
+					}
+					break;
+
+				default:
+					cout << "calculate_expression node unrecognized" << endl;
+					double ret;
+					return calculate_expression(root->lnode, ret) && calculate_expression(root->rnode, ret);
+
+			}
+			break;
+
+		case NONE_T:
+			printf("Error: Unknown node type!\n");
+			exit(FAILURE);
+
+		default:
+			//cout << "why" << endl;
+			double ret;
+			return calculate_expression(root->lnode, ret) && calculate_expression(root->rnode, ret);
+	}
+}
+
+bool search_case(treenode *root, double src) {
+	if (!root || root->hdr.which == LEAF_T) {
+		return false;
+	}
+
+	if((root->hdr.which == NODE_T) && (root->hdr.type == TN_EXPR) && (root->hdr.tok == CASE)){
+		double ret;
+		return (calculate_expression(root->rnode, ret) && (ret == src));
+	}
+
+	return search_case(root->lnode, src) || search_case(root->rnode, src);
+}
 
 /*
 *	Input: Tree of objects 
@@ -849,6 +1212,14 @@ TreeNode *obj_tree(treenode *root) {
 						If *if_obj = new If();
 						if_obj->son1 = obj_tree(ifn->cond);
 						if_obj->son2 = obj_tree(ifn->then_n);
+						double ret;
+						//cout << "if " << endl;
+						if(calculate_expression(ifn->cond, ret)){
+							//cout << "(const) ret: " << to_string(ret) << endl;
+							if_obj->condConst = true;
+							if_obj->condVal = ret;
+						}
+						//cout << "if end" << endl;
 						return if_obj;
 					} else {
 						/* if - else case*/
@@ -856,6 +1227,11 @@ TreeNode *obj_tree(treenode *root) {
 						if_obj->son1 = obj_tree(ifn->cond);
 						if_obj->son2 = obj_tree(ifn->then_n);
 						if_obj->elseNode = obj_tree(ifn->else_n);
+						double ret;
+						if(calculate_expression(ifn->cond, ret)){
+							if_obj->condConst = true;
+							if_obj->condVal = ret;
+						}
 						return if_obj;
 					}
 					break;
@@ -867,6 +1243,11 @@ TreeNode *obj_tree(treenode *root) {
 					conditionExpression->son1 = obj_tree(ifn->cond);
 					conditionExpression->son2 = obj_tree(ifn->then_n);
 					conditionExpression->elseNode = obj_tree(ifn->else_n);
+					double ret;
+					if(calculate_expression(ifn->cond, ret)){
+						conditionExpression->condConst = true;
+						conditionExpression->condVal = ret;
+					}
 					return conditionExpression;
 				}
 
@@ -1192,6 +1573,12 @@ TreeNode *obj_tree(treenode *root) {
 					Switch* switchObj = new Switch();
 					switchObj->son1 = obj_tree(root->lnode);
 					switchObj->son2 = obj_tree(root->rnode);
+					double ret;
+					if(calculate_expression(root->lnode, ret)){
+						switchObj->condConst = true;
+						switchObj->condVal = ret;
+
+					}
 					return switchObj;
 				}
 				case TN_INDEX: {
@@ -1244,6 +1631,16 @@ TreeNode *obj_tree(treenode *root) {
 					} else if (root->hdr.tok == PLUS_EQ) {
 						/* Plus equal assignment "+=" */
 						/* e.g. x += 5; */
+						double ret2;
+						if(calculate_expression(root->rnode, ret2)) {
+							if(ret2 == 0)
+								return NULL;
+
+							Assign *ass_obj = new Assign("add");
+							ass_obj->son1 = obj_tree(root->lnode);
+							ass_obj->son2 = new Num<double>(ret2);
+							return ass_obj;
+						}
 						Assign *ass_obj = new Assign("add");
 						ass_obj->son1 = obj_tree(root->lnode);
 						ass_obj->son2 = obj_tree(root->rnode);
@@ -1251,6 +1648,16 @@ TreeNode *obj_tree(treenode *root) {
 					} else if (root->hdr.tok == MINUS_EQ) {
 						/* Minus equal assignment "-=" */
 						/* e.g. x -= 5; */
+						double ret2;
+						if(calculate_expression(root->rnode, ret2)) {
+							if(ret2 == 0)
+								return NULL;
+
+							Assign *ass_obj = new Assign("sub");
+							ass_obj->son1 = obj_tree(root->lnode);
+							ass_obj->son2 = new Num<double>(ret2);
+							return ass_obj;
+						}
 						Assign *ass_obj = new Assign("sub");
 						ass_obj->son1 = obj_tree(root->lnode);
 						ass_obj->son2 = obj_tree(root->rnode);
@@ -1258,6 +1665,23 @@ TreeNode *obj_tree(treenode *root) {
 					} else if (root->hdr.tok == STAR_EQ) {
 						/* Multiply equal assignment "*=" */
 						/* e.g. x *= 5; */
+						double ret2;
+						if(calculate_expression(root->rnode, ret2)) {
+							if(ret2 == 1)
+								return NULL;
+							else if(ret2 == 0){
+								Assign *ass_obj = new Assign();
+								ass_obj->son1 = obj_tree(root->lnode);
+								ass_obj->son2 = new Num<double>(0);
+								return ass_obj;
+							}
+							else {
+								Assign *ass_obj = new Assign("mul");
+								ass_obj->son1 = obj_tree(root->lnode);
+								ass_obj->son2 = new Num<double>(ret2);
+								return ass_obj;
+							}
+						}
 						Assign *ass_obj = new Assign("mul");
 						ass_obj->son1 = obj_tree(root->lnode);
 						ass_obj->son2 = obj_tree(root->rnode);
@@ -1265,6 +1689,17 @@ TreeNode *obj_tree(treenode *root) {
 					} else if (root->hdr.tok == DIV_EQ) {
 						/* Divide equal assignment "/=" */
 						/* e.g. x /= 5; */
+						double ret2;
+						if(calculate_expression(root->rnode, ret2)) {
+							if(ret2 == 1)
+								return NULL;
+							else {
+								Assign *ass_obj = new Assign("div");
+								ass_obj->son1 = obj_tree(root->lnode);
+								ass_obj->son2 = new Num<double>(ret2);
+								return ass_obj;
+							}
+						}
 						Assign *ass_obj = new Assign("div");
 						ass_obj->son1 = obj_tree(root->lnode);
 						ass_obj->son2 = obj_tree(root->rnode);
@@ -1303,6 +1738,25 @@ TreeNode *obj_tree(treenode *root) {
 							Expression *expr_obj = new Expression("add");
 							expr_obj->son1 = obj_tree(root->lnode);
 							expr_obj->son2 = obj_tree(root->rnode);
+							double ret;
+							if(calculate_expression(root, ret))
+								return new Num<double>(ret);
+							else{
+								double ret1, ret2;
+								if(calculate_expression(root->lnode, ret1)) {
+									if (ret1 == 0)
+										return obj_tree(root->rnode);
+									else
+										expr_obj->son1 = new Num<double>(ret1);
+								}
+								else if(calculate_expression(root->rnode, ret2)) {
+									if (ret2 == 0)
+										return obj_tree(root->lnode);
+									else
+										expr_obj->son2 = new Num<double>(ret2);
+								}
+							}
+
 							return expr_obj;
 						}
 						case MINUS:
@@ -1311,6 +1765,25 @@ TreeNode *obj_tree(treenode *root) {
 							Expression *expr_obj = new Expression("sub");
 							expr_obj->son1 = obj_tree(root->lnode);
 							expr_obj->son2 = obj_tree(root->rnode);
+							double ret;
+							if(calculate_expression(root, ret))
+								return new Num<double>(ret);
+							else{
+								double ret1, ret2;
+								if(calculate_expression(root->lnode, ret1)) {
+									if (ret1 == 0)
+										expr_obj->son1 = NULL;
+									else
+										expr_obj->son1 = new Num<double>(ret1);
+								}
+								else if(calculate_expression(root->rnode, ret2)) {
+									if (ret2 == 0)
+										return obj_tree(root->lnode);
+									else
+										expr_obj->son2 = new Num<double>(ret2);
+								}
+							}
+
 							if(expr_obj->son1 == NULL)
 								expr_obj->op = "neg";
 							return expr_obj;
@@ -1321,6 +1794,22 @@ TreeNode *obj_tree(treenode *root) {
 							Expression *expr_obj = new Expression("div");
 							expr_obj->son1 = obj_tree(root->lnode);
 							expr_obj->son2 = obj_tree(root->rnode);
+							double ret;
+							if(calculate_expression(root, ret))
+								return new Num<double>(ret);
+							else{
+								double ret1, ret2;
+								if(calculate_expression(root->lnode, ret1)) {
+									expr_obj->son1 = new Num<double>(ret1);
+								}
+								else if(calculate_expression(root->rnode, ret2)) {
+									if (ret2 == 1)
+										return obj_tree(root->lnode);
+									else
+										expr_obj->son2 = new Num<double>(ret2);
+								}
+							}
+
 							return expr_obj;
 						}
 						case STAR:
@@ -1329,6 +1818,25 @@ TreeNode *obj_tree(treenode *root) {
 							Expression *expr_obj = new Expression("mul");
 							expr_obj->son1 = obj_tree(root->lnode);
 							expr_obj->son2 = obj_tree(root->rnode);
+							double ret;
+							if(calculate_expression(root, ret))
+								return new Num<double>(ret);
+							else{
+								double ret1, ret2;
+								if(calculate_expression(root->lnode, ret1)) {
+									if (ret1 == 1)
+										return obj_tree(root->rnode);
+									else
+										expr_obj->son1 = new Num<double>(ret1);
+								}
+								else if(calculate_expression(root->rnode, ret2)) {
+									if (ret2 == 1)
+										return obj_tree(root->lnode);
+									else
+										expr_obj->son2 = new Num<double>(ret2);
+								}
+							}
+
 							return expr_obj;
 						}
 						case AND:
@@ -1337,6 +1845,25 @@ TreeNode *obj_tree(treenode *root) {
 							Expression *expr_obj = new Expression("and");
 							expr_obj->son1 = obj_tree(root->lnode);
 							expr_obj->son2 = obj_tree(root->rnode);
+							double ret;
+							if(calculate_expression(root, ret))
+								return new Num<double>(ret);
+							else{
+								double ret1, ret2;
+								if(calculate_expression(root->lnode, ret1)) {
+									if (ret1 != 0)
+										return obj_tree(root->rnode);
+									else
+										expr_obj->son1 = new Num<double>(ret1);
+								}
+								else if(calculate_expression(root->rnode, ret2)) {
+									if (ret2 != 0)
+										return obj_tree(root->lnode);
+									else
+										expr_obj->son2 = new Num<double>(ret2);
+								}
+							}
+
 							return expr_obj;
 						}
 						case OR:
@@ -1345,11 +1872,33 @@ TreeNode *obj_tree(treenode *root) {
 							Expression *expr_obj = new Expression("or");
 							expr_obj->son1 = obj_tree(root->lnode);
 							expr_obj->son2 = obj_tree(root->rnode);
+							double ret;
+							if(calculate_expression(root, ret))
+								return new Num<double>(ret);
+							else{
+								double ret1, ret2;
+								if(calculate_expression(root->lnode, ret1)) {
+									if (ret1 == 0)
+										return obj_tree(root->rnode);
+									else
+										expr_obj->son1 = new Num<double>(ret1);
+								}
+								else if(calculate_expression(root->rnode, ret2)) {
+									if (ret2 == 0)
+										return obj_tree(root->lnode);
+									else
+										expr_obj->son2 = new Num<double>(ret2);
+								}
+							}
+
 							return expr_obj;
 						}
 						case NOT:
 							/* Not token "!" */
 						{
+							double ret;
+							if(calculate_expression(root, ret))
+								return new Num<double>(!ret);
 							Expression *expr_obj = new Expression("not");
 							expr_obj->son1 = obj_tree(root->lnode);
 							expr_obj->son2 = obj_tree(root->rnode);
@@ -1361,6 +1910,17 @@ TreeNode *obj_tree(treenode *root) {
 							Expression *expr_obj = new Expression("grt");
 							expr_obj->son1 = obj_tree(root->lnode);
 							expr_obj->son2 = obj_tree(root->rnode);
+							double ret;
+							if(calculate_expression(root, ret))
+								return new Num<double>(ret);
+							else{
+								double ret1, ret2;
+								if(calculate_expression(root->lnode, ret1))
+									expr_obj->son1 = new Num<double>(ret1);
+								else if(calculate_expression(root->rnode, ret2))
+									expr_obj->son2 = new Num<double>(ret2);
+							}
+
 							return expr_obj;
 						}
 						case LESS:
@@ -1369,6 +1929,17 @@ TreeNode *obj_tree(treenode *root) {
 							Expression *expr_obj = new Expression("les");
 							expr_obj->son1 = obj_tree(root->lnode);
 							expr_obj->son2 = obj_tree(root->rnode);
+							double ret;
+							if(calculate_expression(root, ret))
+								return new Num<double>(ret);
+							else{
+								double ret1, ret2;
+								if(calculate_expression(root->lnode, ret1))
+									expr_obj->son1 = new Num<double>(ret1);
+								else if(calculate_expression(root->rnode, ret2))
+									expr_obj->son2 = new Num<double>(ret2);
+							}
+
 							return expr_obj;
 						}
 						case EQUAL:
@@ -1377,6 +1948,17 @@ TreeNode *obj_tree(treenode *root) {
 							Expression *expr_obj = new Expression("equ");
 							expr_obj->son1 = obj_tree(root->lnode);
 							expr_obj->son2 = obj_tree(root->rnode);
+							double ret;
+							if(calculate_expression(root, ret))
+								return new Num<double>(ret);
+							else{
+								double ret1, ret2;
+								if(calculate_expression(root->lnode, ret1))
+									expr_obj->son1 = new Num<double>(ret1);
+								else if(calculate_expression(root->rnode, ret2))
+									expr_obj->son2 = new Num<double>(ret2);
+							}
+
 							return expr_obj;
 						}
 						case NOT_EQ:
@@ -1385,6 +1967,17 @@ TreeNode *obj_tree(treenode *root) {
 							Expression *expr_obj = new Expression("neq");
 							expr_obj->son1 = obj_tree(root->lnode);
 							expr_obj->son2 = obj_tree(root->rnode);
+							double ret;
+							if(calculate_expression(root, ret))
+								return new Num<double>(ret);
+							else{
+								double ret1, ret2;
+								if(calculate_expression(root->lnode, ret1))
+									expr_obj->son1 = new Num<double>(ret1);
+								else if(calculate_expression(root->rnode, ret2))
+									expr_obj->son2 = new Num<double>(ret2);
+							}
+
 							return expr_obj;
 						}
 						case LESS_EQ:
@@ -1393,6 +1986,17 @@ TreeNode *obj_tree(treenode *root) {
 							Expression *expr_obj = new Expression("leq");
 							expr_obj->son1 = obj_tree(root->lnode);
 							expr_obj->son2 = obj_tree(root->rnode);
+							double ret;
+							if(calculate_expression(root, ret))
+								return new Num<double>(ret);
+							else{
+								double ret1, ret2;
+								if(calculate_expression(root->lnode, ret1))
+									expr_obj->son1 = new Num<double>(ret1);
+								else if(calculate_expression(root->rnode, ret2))
+									expr_obj->son2 = new Num<double>(ret2);
+							}
+
 							return expr_obj;
 						}
 						case GRTR_EQ:
@@ -1401,6 +2005,17 @@ TreeNode *obj_tree(treenode *root) {
 							Expression *expr_obj = new Expression("geq");
 							expr_obj->son1 = obj_tree(root->lnode);
 							expr_obj->son2 = obj_tree(root->rnode);
+							double ret;
+							if(calculate_expression(root, ret))
+								return new Num<double>(ret);
+							else{
+								double ret1, ret2;
+								if(calculate_expression(root->lnode, ret1))
+									expr_obj->son1 = new Num<double>(ret1);
+								else if(calculate_expression(root->rnode, ret2))
+									expr_obj->son2 = new Num<double>(ret2);
+							}
+
 							return expr_obj;
 						}
 						default:
@@ -1434,6 +2049,10 @@ TreeNode *obj_tree(treenode *root) {
 						Case* caseObj  = new Case();
 						caseObj->son1 = obj_tree(root->lnode->rnode);
 						caseObj->son2 = obj_tree(root->rnode);
+						double ret;
+						if(calculate_expression(root->lnode->rnode, ret)) {
+							caseObj->val = ret;
+						}
 						return caseObj;
 					}
 					break;

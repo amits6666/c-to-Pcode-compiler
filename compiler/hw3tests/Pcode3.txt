@@ -1,0 +1,162 @@
+ldc 5
+ldc 2
+sto
+ldc 6
+ldc 1
+sto
+ldc 7
+ldc 3
+sto
+ldc 5
+ind
+print
+ldc 5
+ldc 6
+ind
+sto
+ldc 5
+ind
+print
+ldc 5
+ldc 6
+ind
+sto
+ldc 5
+ind
+print
+ldc 5
+ldc 6
+ind
+ldc 5
+add
+sto
+ldc 5
+ind
+print
+ldc 5
+ldc 7
+ind
+sto
+ldc 5
+ind
+print
+ldc 5
+ldc 7
+ind
+neg
+sto
+ldc 5
+ind
+print
+ldc 5
+ldc 7
+ind
+ldc 5
+sub
+sto
+ldc 5
+ind
+print
+ldc 5
+ldc 0.000000
+sto
+ldc 5
+ind
+print
+ldc 5
+ldc 6
+ind
+sto
+ldc 5
+ind
+print
+ldc 5
+ldc 0.000000
+sto
+ldc 5
+ind
+print
+ldc 5
+ldc 0.000000
+sto
+ldc 5
+ind
+print
+ldc 5
+ldc 6
+ind
+sto
+ldc 5
+ind
+print
+ldc 5
+ldc 6
+ind
+sto
+ldc 5
+ind
+print
+ldc 5
+ldc 0.000000
+sto
+ldc 5
+ind
+print
+ldc 5
+ldc 0.000000
+sto
+ldc 5
+ind
+print
+ldc 5
+ldc 6
+ind
+sto
+ldc 5
+ind
+print
+ldc 5
+ldc 6
+ind
+sto
+ldc 5
+ind
+print
+ldc 5
+ldc 6
+ind
+sto
+ldc 5
+ind
+print
+ldc 5
+ldc 6
+ind
+sto
+ldc 5
+ind
+print
+ldc 5
+ldc 1
+sto
+ldc 5
+ind
+print
+ldc 5
+ldc 1
+sto
+ldc 5
+ind
+print
+ldc 6
+ind
+print
+ldc 6
+ind
+print
+ldc 6
+ind
+print
+ldc 6
+ind
+print

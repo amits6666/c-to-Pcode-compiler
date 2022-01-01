@@ -1,0 +1,34 @@
+2
+1
+1
+6
+3
+-3
+-2
+0
+1
+0
+0
+1
+1
+0
+0
+1
+1
+1
+1
+1
+1
+1
+1
+1
+1
+
+---------------------------------
+Number of jump operations: 0
+Number of complex operations: 0
+Number of simple operations: 3
+
+Jump operations = {mul,div,ixa(also simple op)}
+Complex operations = {mul,div,ixa(also simple op)}
+Simple operations = {add,sub,equ,neq,les,grt,leq,qeu,and,or,neg,not,ixa (also complex op),dec,inc}

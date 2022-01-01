@@ -1,0 +1,27 @@
+ldc 5
+ldc 3
+sto
+ldc 5
+ind
+switch0_case0:
+dpl
+ldc 1
+equ
+fjp switch0_case1
+ldc 1
+print
+ujp switch_end0
+switch0_case1:
+dpl
+ldc 2
+equ
+fjp switch0_case2
+ldc 2
+print
+ujp switch_end0
+switch0_case2:
+switch_end0:
+ldc 20.000000
+print
+ldc 2
+print

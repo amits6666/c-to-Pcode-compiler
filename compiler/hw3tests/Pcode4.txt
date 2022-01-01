@@ -1,0 +1,38 @@
+ldc 5
+ldc 2
+sto
+ldc 5
+ind
+print
+ldc 6
+ldc 5
+sto
+ldc 6
+ind
+print
+ldc 5
+ldc 11.000000
+ldc 5
+ind
+add
+ldc 36.000000
+add
+sto
+for_loop0:
+ldc 5
+ind
+ldc 60.000000
+les
+fjp for_end0
+ldc 5
+ind
+print
+ldc 5
+ind
+ldc 5
+ldc 5
+ind
+inc 1
+sto
+ujp for_loop0
+for_end0:

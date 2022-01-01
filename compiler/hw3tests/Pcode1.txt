@@ -1,0 +1,25 @@
+ldc 5
+ldc 40
+sto
+ldc 5
+ind
+ldc 2
+div
+fjp if_end0
+ldc 1
+print
+if_end0:
+ldc 5
+ind
+ldc 7.000000
+div
+fjp if_end1
+ldc 3
+print
+if_end1:
+ldc 4
+print
+ldc 12.000000
+print
+ldc 28.000000
+print

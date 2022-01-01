@@ -63,9 +63,9 @@ bool equals(string ans_file, string out_file, int sample) {
 }
 
 int main() {
-    for (int i = 1; i <= 12; ++i) {
-        string in_file = "../hw2tests/sample" + to_string(i) + ".c";
-        string ans_file = "../hw2tests/Pcode" + to_string(i) + ".txt";
+    for (int i = 1; i <= 6; ++i) {
+        string in_file = "../hw3tests/sample" + to_string(i) + ".c";
+        string ans_file = "../hw3tests/Pcode" + to_string(i) + ".txt";
         string out_file = "output" + to_string(i) + ".txt";
         system(("compiler.exe -Pcode " + in_file + " > " + out_file).c_str());
         bool good = equals(ans_file,out_file,i);

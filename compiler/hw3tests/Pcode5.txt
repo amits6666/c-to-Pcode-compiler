@@ -1,0 +1,45 @@
+ldc 5
+ldc 1
+sto
+ldc 6
+ldc 2
+sto
+ldc 5
+ind
+print
+ldc 5
+ldc 7.000000
+sto
+ldc 5
+ind
+print
+ldc 5
+ldc 3.000000
+sto
+ldc 5
+ind
+print
+ldc 5
+ldc 3.000000
+sto
+ldc 5
+ind
+print
+ldc 5
+ldc 0
+sto
+ldc 5
+ind
+print
+ldc 5
+ind
+print
+ldc 5
+ldc 6
+ind
+ldc 4.000000
+mul
+sto
+ldc 5
+ind
+print

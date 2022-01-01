@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<!-- saved from url=(0080)https://mw11.haifa.ac.il/pluginfile.php/82802/mod_vpl/intro/pmachine-online.html -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>PMACHINE</title>
+
+    <style>
+    html { overflow: hidden; }
+    body { 
+        font: 14pt Arial, sans-serif; 
+        background: lightgrey;
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        width: 100%;
+        margin: 0 0;
+    }
+    canvas { 
+        display: inline-block; 
+        background: #202020; 
+        width: 95%;
+        height: 45%;
+        box-shadow: 0px 0px 10px blue;
+    }
+    textarea {
+        display: inline-block; 
+        width: 95%;
+        height: 45%;
+        box-shadow: 0px 0px 10px blue;
+    }
+    #output {
+        background: #202020; 
+        color: white;
+    }
+    #controls {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-around;
+        height: 20%;
+        width: 100%;
+    }
+    #viz {
+        height: 80%;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-around;
+        align-items: center;
+    }
+    #help, #play { height: 10vh; line-height: 10vh; cursor: pointer; }
+    textarea { resize: none; }
+    @media (orientation: landscape) {
+        body { flex-direction: row;}
+        #controls { flex-direction: column; height: 100%; width: 10%;}
+        #viz { height: 100%; width: 90%;}
+    }
+    </style>
+    <style>
+    .metal {
+      position: relative;
+      margin: 40px auto;
+      outline: none;
+      
+      text-align: center;
+      color: hsla(0,0%,20%,1);
+      text-shadow: hsla(0,0%,40%,.5) 0 -1px 0, hsla(0,0%,100%,.6) 0 2px 1px;
+      
+      background-color: hsl(0,0%,90%);
+      box-shadow: inset hsla(0,0%,15%,  1) 0  0px 0px 1px, /* border */
+        inset hsla(0,0%,15%, .8) 0 -1px 3px 2px, /* soft SD */
+        inset hsla(0,0%,0%, .25) 0 -1px 0px 5px, /* bottom SD */
+        inset hsla(0,0%,100%,.7) 0  2px 1px 5px, /* top HL */
+        
+        hsla(0,0%, 0%,.15) 0 -5px 6px 4px, /* outer SD */
+        hsla(0,0%,100%,.5) 0  5px 6px 4px; /* outer HL */ 
+      
+      transition: color .2s;
+    }
+    .metal.linear {
+      width: 10vh;
+      border-radius: .5em;
+      background-image: 
+        -webkit-repeating-linear-gradient(left, hsla(0,0%,100%,0) 0%, hsla(0,0%,100%,0) 6%, hsla(0,0%,100%, .1) 7.5%),
+        -webkit-repeating-linear-gradient(left, hsla(0,0%,  0%,0) 0%, hsla(0,0%,  0%,0)   4%, hsla(0,0%,  0%,.03) 4.5%),
+        -webkit-repeating-linear-gradient(left, hsla(0,0%,100%,0) 0%, hsla(0,0%,100%,0) 1.2%, hsla(0,0%,100%,.15) 2.2%),
+        linear-gradient(180deg, hsl(0,0%,78%)  0%, hsl(0,0%,90%) 47%, hsl(0,0%,78%) 53%, hsl(0,0%,70%)100%);
+      background-image: 
+        -moz-repeating-linear-gradient(left, hsla(0,0%,100%,0) 0%, hsla(0,0%,100%,0) 6%, hsla(0,0%,100%, .1) 7.5%),
+        -moz-repeating-linear-gradient(left, hsla(0,0%,  0%,0) 0%, hsla(0,0%,  0%,0)   4%, hsla(0,0%,  0%,.03) 4.5%),
+        -moz-repeating-linear-gradient(left, hsla(0,0%,100%,0) 0%, hsla(0,0%,100%,0) 1.2%, hsla(0,0%,100%,.15) 2.2%),
+        linear-gradient(180deg, hsl(0,0%,78%)  0%, hsl(0,0%,90%) 47%, hsl(0,0%,78%) 53%, hsl(0,0%,70%)100%);
+      background-image: 
+        -o-repeating-linear-gradient(left, hsla(0,0%,100%,0) 0%, hsla(0,0%,100%,0) 6%, hsla(0,0%,100%, .1) 7.5%),
+        -o-repeating-linear-gradient(left, hsla(0,0%,  0%,0) 0%, hsla(0,0%,  0%,0)   4%, hsla(0,0%,  0%,.03) 4.5%),
+        -o-repeating-linear-gradient(left, hsla(0,0%,100%,0) 0%, hsla(0,0%,100%,0) 1.2%, hsla(0,0%,100%,.15) 2.2%),
+        linear-gradient(180deg, hsl(0,0%,78%)  0%, hsl(0,0%,90%) 47%, hsl(0,0%,78%) 53%, hsl(0,0%,70%)100%);
+      background-image: 
+        -ms-repeating-linear-gradient(left, hsla(0,0%,100%,0) 0%, hsla(0,0%,100%,0) 6%, hsla(0,0%,100%, .1) 7.5%),
+        -ms-repeating-linear-gradient(left, hsla(0,0%,  0%,0) 0%, hsla(0,0%,  0%,0)   4%, hsla(0,0%,  0%,.03) 4.5%),
+        -ms-repeating-linear-gradient(left, hsla(0,0%,100%,0) 0%, hsla(0,0%,100%,0) 1.2%, hsla(0,0%,100%,.15) 2.2%),
+        linear-gradient(180deg, hsl(0,0%,78%)  0%, hsl(0,0%,90%) 47%, hsl(0,0%,78%) 53%, hsl(0,0%,70%)100%);
+      background-image: 
+        repeating-linear-gradient(left, hsla(0,0%,100%,0) 0%, hsla(0,0%,100%,0) 6%, hsla(0,0%,100%, .1) 7.5%),
+        repeating-linear-gradient(left, hsla(0,0%,  0%,0) 0%, hsla(0,0%,  0%,0)   4%, hsla(0,0%,  0%,.03) 4.5%),
+        repeating-linear-gradient(left, hsla(0,0%,100%,0) 0%, hsla(0,0%,100%,0) 1.2%, hsla(0,0%,100%,.15) 2.2%),
+        linear-gradient(180deg, hsl(0,0%,78%)  0%, hsl(0,0%,90%) 47%, hsl(0,0%,78%) 53%, hsl(0,0%,70%)100%);
+    }
+    .metal:active {
+      color: hsl(210, 100%, 40%);
+      text-shadow: hsla(210,100%,20%,.3) 0 -1px 0, hsl(210,100%,85%) 0 2px 1px, hsla(200,100%,80%,1) 0 0 5px, hsla(210,100%,50%,.6) 0 0 20px;
+      box-shadow: 
+        inset hsla(210,100%,30%,  1) 0  0px 0px 4px, /* border */
+        inset hsla(210,100%,15%, .4) 0 -1px 5px 4px, /* soft SD */
+        inset hsla(210,100%,20%,.25) 0 -1px 0px 7px, /* bottom SD */
+        inset hsla(210,100%,100%,.7) 0  2px 1px 7px, /* top HL */
+        
+        hsla(210,100%,75%, .8) 0  0px 3px 2px, /* outer SD */
+        hsla(210,50%,40%, .25) 0 -5px 6px 4px, /* outer SD */
+        hsla(210,80%,95%,   1) 0  5px 6px 4px; /* outer HL */
+    }
+    </style>
+
+    <script type="text/javascript">
+    var MAXVARS = 512
+
+    var BINARY = {
+        'add' : function(a, b) { return a + b },
+        'sub' : function(a, b) { return a - b },
+        'mul' : function(a, b) { return a * b },
+        'div' : function(a, b) { return a / b },
+        'equ' : function(a, b) { return a == b },
+        'neq' : function(a, b) { return a != b },
+        'les' : function(a, b) { return a < b },
+        'grt' : function(a, b) { return a > b },
+        'leq' : function(a, b) { return a <= b },
+        'geq' : function(a, b) { return a >= b },
+        'and' : function(a, b) { return Boolean(a) && Boolean(b) },
+        'or' : function(a, b) { return Boolean(a) || Boolean(b) }};
+
+    var UNARY = {
+        'neg' : function(a) { return -a; },
+        'not' :  function(a) { return !Boolean(a); }
+    };
+
+    var JUMPS = {
+        'fjp' : function(stack, pc, addr) {
+            return Boolean(stack.pop()) ? pc + 1 : addr;
+        },
+        'ujp' : function(stack, pc, addr) { return addr; },
+        'ixj' : function(stack, pc, addr) { return stack.pop() + addr; }
+    };
+
+    var IGNORE = { 'chk' : null, 'pass' : null };
+
+    function split(s, sep) {
+        return s.split(sep).map(function(e) { return e.trim(); });
+    }
+
+    function str2val(s) {
+        if (s == 'true' || s == 'false')
+            return s == 'true';
+        return s.indexOf('.') >= 0 ? parseFloat(s) : parseInt(s);
+    }
+
+    function run(lines, printer) {
+        var stack = new Array(MAXVARS);
+        var pc = 0;
+
+        while (pc < lines.length) {
+            if (lines[pc].trim() == '') {
+                pc += 1;
+                continue;
+            }
+
+            var words = split(lines[pc], ' ');
+            var cmd = words[0];
+
+            if (cmd in JUMPS) {
+                var addr = parseInt(words[words.length-1]);
+                pc = JUMPS[cmd](stack, pc, addr);
+                continue;
+            }
+
+            if (cmd in BINARY) {
+                var b = stack.pop();
+                var a = stack.pop();
+                stack.push(BINARY[cmd](a, b));
+            } else if (cmd in UNARY) {
+                stack.push(UNARY[cmd](stack.pop()));
+            } else if (cmd in IGNORE) {
+            } else if (cmd == 'ldc') {
+                stack.push(str2val(words[words.length-1]));
+            } else if (cmd == 'ind') {
+                stack.push(stack[stack.pop()]);
+            } else if (cmd == 'print' || cmd == 'out') {
+                printer(stack.pop());
+            } else if (cmd == 'sto') {
+                var rval = stack.pop();
+                var lval = stack.pop();
+                stack[lval] = rval;
+            } else if (cmd == 'ixa') {
+                var a = stack.pop();
+                stack[stack.length-1] += a * parseInt(words[words.length-1]);
+            } else if (cmd == 'dec') {
+                stack[stack.length-1]--;
+            } else if (cmd == 'inc') {
+                stack[stack.length-1]++;
+            } else {
+                throw ("unknown command at line " + pc + ": " + lines[pc]);
+            }
+
+            pc += 1;
+        }
+    }
+
+    function unlabel(lines) {
+        var labels = {};
+        
+        function removeLabelsLeft(element, index, array) {
+            var s = split(element, ':');
+            for (var i = 0; i < s.length - 1; i++)
+                labels[s[i]] = index.toString();
+            return s[s.length-1];
+        }
+
+        function removeLabelsRight(element) {
+            var s = split(element, ' ');
+            if (s[s.length-1] in labels)
+                s[s.length-1] = labels[s[s.length-1]];
+            return s.join(' ');
+        }
+
+        return lines.map(removeLabelsLeft).map(removeLabelsRight);
+    }
+
+    function parse(code, printer) {
+        try {
+            lines = unlabel(split(code, '\n').map(function(element) {
+                return element.toLowerCase().trim();
+            }));
+            output = run(lines, printer);
+        } catch (err) {
+            printer('Error occurred during execution: ' + err);
+        }
+    }
+    </script>
+    <script type="text/javascript">
+        function doit() {
+            input = document.getElementById('input');
+            output = document.getElementById('output');
+            output.value = '';
+            printer = function(val) {
+                output.value += val.toString() + '\n';
+            };
+            parse(input.value, printer);
+        }
+    </script>
+</head>
+<body>
+    <div id="viz">
+        <textarea id="input" width="1024" height="500"></textarea>
+        <textarea id="output" readonly="true" width="1024" height="500"></textarea>
+    </div>
+    <div id="controls">
+        <a id="play" class="metal linear" onclick="doit()">▶</a>
+        <a id="help" class="metal linear" onclick="alert(&#39;העתיקו את ה-PCODE לריבוע הלבן ולחצו על הכפתור PLAY&#39;)">?</a>
+    </div>
+
+
+
+</body></html>

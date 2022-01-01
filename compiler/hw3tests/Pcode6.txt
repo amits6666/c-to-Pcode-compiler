@@ -1,0 +1,149 @@
+ldc 5
+ldc -14.000000
+sto
+ldc 6
+ldc 1
+sto
+ldc 7
+ldc 3
+sto
+ldc 5
+ind
+print
+ldc 5
+ind
+print
+ldc 5
+ind
+print
+ldc 5
+ldc 0
+sto
+ldc 5
+ind
+print
+ldc 5
+ldc 0
+sto
+ldc 5
+ind
+print
+ldc 5
+ind
+print
+ldc 5
+ldc 0.000000
+sto
+ldc 5
+ind
+print
+ldc 5
+ldc 0.000000
+sto
+ldc 5
+ind
+print
+ldc 5
+ldc 6
+ind
+ldc 1.000000
+add
+ldc 6
+ind
+add
+sto
+ldc 5
+ind
+print
+ldc 5
+ldc 6
+ind
+ldc 1.000000
+add
+ldc 6
+ind
+add
+sto
+ldc 5
+ind
+print
+ldc 5
+ldc 6
+ind
+sto
+ldc 5
+ind
+print
+ldc 5
+ldc 44.000000
+sto
+ldc 5
+ind
+print
+ldc 5
+ldc 12.000000
+sto
+ldc 5
+ind
+print
+ldc 5
+ind
+print
+ldc 5
+ldc 5
+ind
+ldc 10
+ldc 6
+ind
+ldc 0
+grt
+fjp cond_else0
+ldc 1
+ujp condLabel_end0
+cond_else0:
+ldc 10
+condLabel_end0:
+sub
+sub
+sto
+ldc 5
+ind
+print
+ldc 5
+ldc 5
+ind
+ldc 60.000000
+ldc 6
+ind
+ldc 0
+grt
+fjp cond_else1
+ldc 3.000000
+ujp condLabel_end1
+cond_else1:
+ldc 9.000000
+condLabel_end1:
+sub
+sub
+sto
+ldc 5
+ind
+print
+ldc 5
+ldc 60.000000
+ldc 6
+ind
+ldc 6
+ind
+div
+add
+ldc 6
+ind
+ldc 6
+ind
+sub
+add
+sto
+ldc 5
+ind
+print
